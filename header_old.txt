@@ -1,0 +1,103 @@
+{/* Modern top Header banner bar */}
+      {activeTab !== 'profile' && (
+      <header className={`sticky top-0 z-40 transition-all duration-300 ${state.layoutMode === 'clean' || state.uiMode === 'cinematic' ? 'bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-slate-950/95 backdrop-blur-2xl border-b border-emerald-500/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)] py-3 px-4 sm:px-6' : 'bg-slate-950/80 backdrop-blur-xl border-b border-white/5 py-4 px-4 sm:px-6'} flex items-center justify-between`}>
+        
+        {/* Creator branding and title */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 active:scale-95 transition-all cursor-pointer"
+            title={state.language === 'bn' ? 'মেনু বার' : 'Open Menu'}
+          >
+            <Menu className="w-5 h-5 text-amber-400" />
+          </button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsAiFullScreen(true)}
+            className="mridhax-ai-brand flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950/60 to-slate-900/80 border border-emerald-500/30 transition-all active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.15)] relative overflow-hidden"
+            title={state.language === 'bn' ? 'মৃধাক্স এআই চ্যাট খুলুন' : 'Open MridhaX AI Chat'}
+          >
+            {/* Smooth glowing shimmer sweep */}
+            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
+            
+            <div className="flex items-center gap-1.5 relative z-10">
+              <span className="text-xs sm:text-sm font-black tracking-wider text-white uppercase font-sans">
+                MridhaX
+              </span>
+              <span className="ai-glow-badge text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 flex items-center gap-0.5 shadow-[0_0_10px_rgba(16,185,129,0.6)]">
+                <span>AI</span>
+                <span className="w-1 h-1 rounded-full bg-slate-950 animate-ping inline-block" />
+              </span>
+            </div>
+            
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 font-bold animate-pulse" />
+            
+            {/* Elegant real-time syncing status indicator dot - turns pulsing red on saving */}
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${showAutoSaveToast ? 'bg-rose-500 opacity-75' : 'bg-emerald-500 opacity-30'}`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${showAutoSaveToast ? 'bg-rose-500 shadow-md shadow-rose-500' : 'bg-emerald-500'}`}></span>
+            </span>
+          </motion.button>
+
+          {/* Quick Exam Shortcut Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              handleTabChange('exams');
+              setIsAiFullScreen(false);
+              playCompletionBeep();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer ${
+              activeTab === 'exams' && !isAiFullScreen
+                ? 'bg-yellow-500/15 border-yellow-500/40 text-yellow-400 font-bold shadow-[0_0_12px_rgba(234,179,8,0.15)]'
+                : 'bg-slate-900 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+            title={state.language === 'bn' ? 'পরীক্ষা ও সিলেবাস ট্র্যাক' : 'Exam & Syllabus Tracker'}
+          >
+            <GraduationCap className="w-4 h-4 text-yellow-400 shrink-0" />
+            <span className="text-xs font-bold hidden sm:inline-block">
+              {state.language === 'bn' ? 'পরীক্ষা' : 'Exams'}
+            </span>
+          </motion.button>
+
+          {/* Quick Routine Shortcut Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              handleTabChange('routine');
+              setIsAiFullScreen(false);
+              playCompletionBeep();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer ${
+              activeTab === 'routine' && !isAiFullScreen
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-500 font-bold shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                : 'bg-slate-900 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+            }`}
+            title={state.language === 'bn' ? 'একাডেমিক রুটিন' : 'Study Routine'}
+          >
+            <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="text-xs font-bold hidden sm:inline-block">
+              {state.language === 'bn' ? 'রুটিন' : 'Routine'}
+            </span>
+          </motion.button>
+        </div>
+
+        {/* Global togglers consolidated */}
+        <div className="flex items-center gap-2">
+          <HeaderActions 
+            language={state.language}
+            onToggleLanguage={toggleLanguage}
+            onOpenGarden={() => setShowGardenModal(true)}
+            onOpenSounds={() => setShowSoundModal(true)}
+            onOpenInstall={() => setShowInstallGuide(true)}
+            onOpenOnboarding={() => saveState({ ...state, showOnboarding: true })}
+            onChangeTheme={changeTheme}
+            onOpenSocial={() => setIsSocialDashboardOpen(true)}
+            onlineCount={state.focusLevel || 3} 
+            systemStatus={systemStatus}
+          />
+        </div>
+      </header>

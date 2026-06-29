@@ -1,0 +1,50 @@
+208:      return n.toString().split('').map(digit => {
+698:        {lines.map((line, idx) => {
+2736:      const currentDay = (routines[dayIdx] || []).map(item => 
+3444:      subjects: state.subjects.map(s => s.id === editingSubjectId ? { ...s, name: editingSubjectName.trim(), target: editingSubjectTarget } : s)
+3495:      habits: state.habits.map(h => h.id === editingHabitId ? { ...h, name: editingHabitName.trim(), time: editingHabitTime } : h)
+3509:      badHabits: (state.badHabits || []).map(bh => bh.id === editingBadHabitId ? { ...bh, name: editingBadHabitName.trim() } : bh)
+3524:      fitness: state.fitness.map(f => f.id === editingFitnessId ? { ...f, name: editingFitnessName.trim(), goal: editingFitnessGoal.trim() } : f)
+3715:      badHabits: (state.badHabits || []).map(item => 
+4019:      reflections: state.reflections.map(r => r.id === id ? { ...r, text: updatedText } : r)
+4197:                        {aiChatHistory.map((msg, i) => {
+4246:                                      {[1, 2, 3, 4, 5].map((_, barIdx) => (
+4391:                            ].map(v => (
+4472:                                    ].map(t => (
+4554:                                    messages: newHistory.map(m => ({ role: m.role, parts: m.parts })),
+4558:                                      ? state.examPreps.map(ep => ({
+4562:                                          subjects: ep.subjects?.map(s => ({
+4565:                                            chapters: s.chapters?.map(c => ({ name: c.name, isCompleted: c.isCompleted }))
+4572:                                          subjects: state.examPrep.subjects?.map(s => ({
+4575:                                            chapters: s.chapters?.map(c => ({ name: c.name, isCompleted: c.isCompleted }))
+4788:                    <LineChart data={[10, 30, 20, 50, 40, 70, 60].map(s => ({ score: s }))}>
+5194:                      {liveDuty.custom.map((task, k) => (
+5231:                      {todayStudyBlocks.map((block: StudyRoutineItem) => (
+5653:                  {state.subjects.map((sub) => {
+5903:                {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map((waqt) => {
+5921:                        ].map((btn) => {
+5943:                {Object.keys(state.prayerTimes).map((waqtKey) => {
+5996:                              ].map((btn) => {
+6051:                {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map((w) => (
+6233:                      {state.habits.map((item) => {
+6466:                      {state.badHabits.map((item) => {
+6614:                  {state.fitness.map((item) => {
+6736:                    {state.fitness.map((item) => (
+6774:                      {[5, 10, 20, 30].map((m) => (
+6967:                    {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
+7031:                        {state.routine[routineDayIdx].customTasks!.map((chore, cIdx) => {
+7143:                    {dayRoutines.map((routine: StudyRoutineItem) => (
+7395:                  ].map((preset) => {
+7626:                          ].map((rating) => {
+7805:                      return appsList.map((app) => {
+7970:                    ].map((scope) => {
+8044:                    ].map((tPreset, idx) => {
+8145:                    ].map((plt) => (
+8602:                    return days.map((day, idx) => {
+8698:                ].map((item) => (
+8735:            ].map((tab) => {
+9148:                ].map((item) => {
+9279:                ].map((track) => {
+9608:            {[...Array(20)].map((_, i) => {
+9805:                          {[...Array(8)].map((_, barIdx) => (
+9870:                {FEMALE_VOICE_PROFILES.map((profile, i) => {

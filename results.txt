@@ -1,0 +1,15 @@
+  const [timerRunning, setTimerRunning] = useState<boolean>(false);
+  const timerRunningRef = useRef(timerRunning);
+    timerRunningRef.current = timerRunning;
+  }, [timerRunning]);
+      if (timerRunningRef.current && keepFocusInBackgroundRef.current && blurTimeRef.current > 0) {
+    if (timerRunning) {
+  }, [timerRunning, isWindowFocused, selectedSubject]);
+    setTimerRunning(!timerRunning);
+                isFocused={timerRunning}
+                    timerRunning 
+                  {timerRunning ? (
+                {timerRunning && (
+                  isFocused={timerRunning}
+                    timerRunning 
+                  {timerRunning ? t.studyPause : t.studyStart}

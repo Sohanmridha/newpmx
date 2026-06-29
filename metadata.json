@@ -1,0 +1,6 @@
+{
+  "name": "MridhaX AI",
+  "description": "Premium Lifestyle & Productivity Dashboard with AI insights, global leaderboard, and real-time study partners syncing.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

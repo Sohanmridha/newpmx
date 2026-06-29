@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // --- Global Helpers ---
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    
+    // --- Validation Helpers ---
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() <= 100;
+    }
+    
+    function isValidPost(data) {
+        return data.userId is string && data.content is string && data.content.size() <= 1000 &&
+               data.imageUrls is list && data.imageUrls.size() <= 5 &&
+               data.timestamp == request.time;
+    }
+
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().userId == userId;
+    }
+
+    // UserStates
+    match /userStates/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Messages
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      allow update, delete: if isOwner(existing().userId);
+    }
+
+    // Direct Messages
+    match /direct_messages/{messageId} {
+      allow read: if isSignedIn() && resource.data.roomId.matches('.*' + request.auth.uid + '.*');
+      allow create: if isSignedIn() && incoming().senderId == request.auth.uid && incoming().roomId.matches('.*' + request.auth.uid + '.*');
+      allow update, delete: if isSignedIn() && existing().senderId == request.auth.uid;
+    }
+    
+    // Posts
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isEmailVerified() && isValidPost(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(existing().userId) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isOwner(existing().userId);
+      
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && isEmailVerified() && incoming().userId == request.auth.uid && exists(/databases/$(database)/documents/posts/$(postId));
+        allow delete: if isSignedIn() && isOwner(existing().userId);
+      }
+    }
+  }
+}

@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Fix Bengali Ligature, Font Breaking, and Overlapping */
+body, .font-sans, p, span, div, h1, h2, h3, h4, h5, h6 {
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Line-height adjustment for Bengali texts to prevent overlapping */
+.leading-relaxed, p, li {
+  line-height: 1.75 !important;
+}
+
+/* Math styling alignment */
+.katex-display {
+  margin: 1.25em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(51, 65, 85, 0.3);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    text-shadow: 0 0 4px rgba(16, 185, 129, 0.4), 0 0 12px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.1), inset 0 0 4px rgba(16, 185, 129, 0.1);
+    border-color: rgba(52, 211, 153, 0.35);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 0 18px rgba(52, 211, 153, 0.5);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.35), inset 0 0 8px rgba(52, 211, 153, 0.25);
+    border-color: rgba(52, 211, 153, 0.85);
+  }
+}
+
+@keyframes ai-pulse {
+  0%, 100% {
+    opacity: 0.95;
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.85), 0 0 20px rgba(245, 158, 11, 0.4);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.mridhax-ai-brand {
+  animation: pulse-glow 2.5s infinite ease-in-out;
+}
+
+.ai-glow-badge {
+  animation: ai-pulse 2s infinite ease-in-out;
+}
+
+@keyframes soundwave-bounce {
+  0% { transform: scaleY(0.2); }
+  100% { transform: scaleY(1.3); }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #020617;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Cinematic UI Overrides */
+.cinematic-mode * {
+  border-color: rgba(34, 211, 238, 0.15); /* cyan-400 at 15% */
+}
+
+/* Glassmorphism Cards */
+.cinematic-mode div[class*="bg-slate-900"],
+.cinematic-mode div[class*="bg-slate-950"],
+.cinematic-mode div[class*="bg-[#131a26]"] {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-radius: 20px !important; /* Squircle feel */
+  border: 1px solid rgba(34, 211, 238, 0.15) !important; /* glowing border */
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Exception for full screen elements like sidebar */
+.cinematic-mode .fixed.inset-0 {
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+/* Pill-shaped buttons */
+.cinematic-mode button:not([class*="rounded-full"]):not(.mridhax-ai-brand) {
+  border-radius: 9999px !important;
+}
+
+.cinematic-mode input,
+.cinematic-mode select,
+.cinematic-mode textarea {
+  border-radius: 16px !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(34, 211, 238, 0.2) !important;
+}
+
+/* Typography Enhancements for Cinematic */
+.cinematic-mode h1, .cinematic-mode h2, .cinematic-mode h3 {
+  letter-spacing: -0.02em;
+}
+

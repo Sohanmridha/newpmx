@@ -1,0 +1,29 @@
+      const timer = setTimeout(() => {
+      return () => clearTimeout(timer);
+  const [timerRunning, setTimerRunning] = useState<boolean>(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRunningRef = useRef(timerRunning);
+    timerRunningRef.current = timerRunning;
+  }, [timerRunning]);
+      // If the timer was active, keepFocusInBackground is enabled, and we had an active blur duration
+      if (timerRunningRef.current && keepFocusInBackgroundRef.current && blurTimeRef.current > 0) {
+      if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRunning) {
+      timerRef.current = setInterval(() => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      if (timerRef.current) clearInterval(timerRef.current);
+  }, [timerRunning, isWindowFocused, selectedSubject]);
+  // Toggle study session timer
+    setTimerRunning(!timerRunning);
+    if (window.confirm(state.language === 'bn' ? 'আপনি কি আজকের টাইমার রিসেট করতে চান?' : 'Are you sure you want to reset today\'s study timer for this subject?')) {
+  // Formatting display timer numerals
+                isFocused={timerRunning}
+                    timerRunning 
+                  {timerRunning ? (
+                {timerRunning && (
+                                        triggerCustomAlert(state.language === 'bn' ? 'সফলভাবে রিসেট হয়েছে।' : 'Habit timer reset.', 'Professional Status', 'success');
+                  isFocused={timerRunning}
+                    timerRunning 
+                  {timerRunning ? t.studyPause : t.studyStart}

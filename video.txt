@@ -1,0 +1,30 @@
+967:  const [activeAiMode, setActiveAiMode] = useState<'chat' | 'social' | 'video' | 'docs'>('chat');
+1025:      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isCameraActive });
+1042:      let videoInterval: any;
+1044:        const videoElement = document.getElementById('aiCameraPreviewFullscreen') as HTMLVideoElement;
+1045:        if (videoElement) {
+1046:          videoElement.srcObject = stream;
+1049:          videoInterval = setInterval(() => {
+1050:            if (ws.readyState === WebSocket.OPEN && videoElement.videoWidth) {
+1051:              canvas.width = videoElement.videoWidth;
+1052:              canvas.height = videoElement.videoHeight;
+1053:              ctx?.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+1056:              ws.send(JSON.stringify({ video: base64Video }));
+1070:        clearInterval(videoInterval);
+1107:    // Cleanup video preview if it was used
+1109:       const videoElement = document.getElementById('aiCameraPreviewFullscreen') as HTMLVideoElement;
+1110:       if (videoElement) {
+1111:          videoElement.srcObject = null;
+1304:        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+1323:    const video = document.getElementById('aiCameraPreviewFullscreen') as HTMLVideoElement;
+1324:    if (!video) return;
+1327:    canvas.width = video.videoWidth || 640;
+1328:    canvas.height = video.videoHeight || 480;
+1331:      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+3480:                     <video id="aiCameraPreviewFullscreen" autoPlay playsInline muted className="w-full h-full object-cover opacity-80" />
+3653:                                  { id: 'video', labelBn: 'কো-লার্নিং রুম', labelEn: 'Co-Learning', icon: Video, color: 'text-emerald-400' },
+7314:                      : 'Addiction loops from addictive scrolling platforms remain blocked. Educational playlists, full-length tutorials or direct lecture videos remain 100% untouched so you can study perfectly.'}
+7578:127.0.0.1 videos.fbgd1-1.fna.fbcdn.net
+7601:127.0.0.1 videos.fbgd1-1.fna.fbcdn.net
+7676:                        <span>❌ xvideos.com / adult-block</span>
+8013:                    : 'You were trying to hijack your attention span with instant doomscrolls again! Your long-term dreams are far too precious to be traded for cheap micro-videos. Back to study desk!'}

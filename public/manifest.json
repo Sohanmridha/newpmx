@@ -1,0 +1,21 @@
+{
+  "short_name": "MridhaX",
+  "name": "MridhaX — Anime Study Partner",
+  "icons": [
+    {
+      "src": "/pwa_icon.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/pwa_icon.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#f59e0b",
+  "display": "standalone",
+  "orientation": "portrait"
+}

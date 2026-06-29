@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User profile and statistics for leaderboard and syncing.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string" },
+        "age": { "type": "string" },
+        "grade": { "type": "string" },
+        "favSubjects": { "type": "string" },
+        "interests": { "type": "string" },
+        "totalFocusMinutes": { "type": "integer" },
+        "habitConsistency": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "avatarUrl": { "type": "string" },
+        "points": { "type": "integer" },
+        "prayerStreak": { "type": "integer" },
+        "maintenanceScore": { "type": "number" }
+      },
+      "required": ["userId", "name"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message posted to the global study community chat.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "avatarUrl": { "type": "string" }
+      },
+      "required": ["userId", "userName", "text"]
+    },
+    "DirectMessage": {
+      "title": "Direct Message",
+      "description": "A private message between two users.",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["roomId", "senderId", "senderName", "text"]
+    },
+    "SocialPost": {
+      "title": "Social Post",
+      "description": "A post by a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "content", "timestamp"]
+    },
+    "SocialComment": {
+      "title": "Social Comment",
+      "description": "A comment on a post.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "userId", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Public user profile and stats."
+    },
+    "/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Global community chat messages."
+    },
+    "/direct_messages/{messageId}": {
+      "schema": "DirectMessage",
+      "description": "Private direct messages between users."
+    },
+    "/posts/{postId}": {
+      "schema": "SocialPost",
+      "description": "User posts."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": "SocialComment",
+      "description": "Comments on user posts."
+    }
+  }
+}
