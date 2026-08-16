@@ -407,6 +407,91 @@ async function checkBackgroundNotifications() {
       }
     }
 
+    // E. Personal Daily Routine reminders (5-10 minutes before the scheduled time slot)
+    if (data.personalDailyRoutines) {
+      const jsDay = dateObj.getDay();
+      const customDayIdx = (jsDay + 1) % 7; // saturday starts at index 0
+      const currentRoutines = data.personalDailyRoutines[customDayIdx] || [];
+
+      if (currentRoutines.length > 0) {
+        const notifiedRoutinesKey = '/sw-notified-personal-routines';
+        const notifiedRoutinesRes = await cache.match(notifiedRoutinesKey);
+        let notifiedRoutines = {};
+        if (notifiedRoutinesRes) {
+          try {
+            notifiedRoutines = await notifiedRoutinesRes.json();
+          } catch (e) {}
+        }
+
+        let updatedRoutines = false;
+        const nowMinutes = dateObj.getHours() * 60 + dateObj.getMinutes();
+
+        // helper to parse time
+        function parseTimeStringToMinutes(timeStr) {
+          if (!timeStr) return null;
+          const clean = timeStr.trim().toLowerCase();
+          const match = clean.match(/^(\d{1,2})[:.](\d{2})\s*(am|pm)?$/);
+          if (!match) {
+            const simpleMatch = clean.match(/^(\d{1,2})\s*(am|pm)?$/);
+            if (simpleMatch) {
+              let hours = parseInt(simpleMatch[1], 10);
+              const meridian = simpleMatch[2];
+              if (meridian === 'pm' && hours < 12) hours += 12;
+              if (meridian === 'am' && hours === 12) hours = 0;
+              return hours * 60;
+            }
+            return null;
+          }
+          let hours = parseInt(match[1], 10);
+          let minutes = parseInt(match[2], 10);
+          const meridian = match[3];
+          if (meridian === 'pm' && hours < 12) hours += 12;
+          if (meridian === 'am' && hours === 12) hours = 0;
+          return hours * 60 + minutes;
+        }
+
+        for (const item of currentRoutines) {
+          if (item.completed) continue;
+          const taskStartMinutes = parseTimeStringToMinutes(item.timeSlot);
+          if (taskStartMinutes === null) continue;
+
+          // calculate difference in minutes
+          const diffMinutes = taskStartMinutes - nowMinutes;
+
+          // If within the 5 to 10 minutes warning window
+          if (diffMinutes >= 5 && diffMinutes <= 10) {
+            const dateStr = dateObj.toDateString();
+            const alarmId = `${item.id}_${dateStr}`;
+
+            if (!notifiedRoutines[alarmId]) {
+              const title = language === 'bn'
+                ? 'বন্ধু, নতুন কাজের প্রস্তুতি নাও! ⚡'
+                : 'Friend, Prepare for Your Next Task! ⚡';
+              const body = language === 'bn'
+                ? `আর মাত্র ${diffMinutes} মিনিটের মধ্যে তোমার রুটিনের "${item.taskName}" শুরু হতে যাচ্ছে। চলো এখনই রেডি হয়ে যাই!`
+                : `Your scheduled task "${item.taskName}" is starting in just ${diffMinutes} minutes. Let's get ready!`;
+
+              await self.registration.showNotification(title, {
+                body,
+                icon: '/pwa_icon.jpg',
+                badge: '/pwa_icon.jpg',
+                vibrate: [250, 100, 250],
+                tag: `routine-alarm-${item.id}`,
+                data: { url: '/' }
+              });
+
+              notifiedRoutines[alarmId] = now;
+              updatedRoutines = true;
+            }
+          }
+        }
+
+        if (updatedRoutines) {
+          await cache.put(notifiedRoutinesKey, new Response(JSON.stringify(notifiedRoutines)));
+        }
+      }
+    }
+
   } catch (err) {
     console.warn('Background notifications evaluation error:', err);
   }

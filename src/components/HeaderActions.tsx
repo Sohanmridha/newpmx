@@ -28,6 +28,8 @@ interface HeaderActionsProps {
   onOpenSocial: () => void;
   onlineCount: number;
   systemStatus: 'optimal' | 'degraded' | 'error';
+  isOpen: boolean;
+  onToggleOpen: (open: boolean) => void;
 }
 
 export function HeaderActions({
@@ -40,9 +42,10 @@ export function HeaderActions({
   onChangeTheme,
   onOpenSocial,
   onlineCount,
-  systemStatus
+  systemStatus,
+  isOpen,
+  onToggleOpen
 }: HeaderActionsProps) {
-  const [isOpen, setIsOpen] = useState(false);
 
   const tools = [
     { 
@@ -105,7 +108,7 @@ export function HeaderActions({
     <div className="relative">
       {/* Unified Trigger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => onToggleOpen(!isOpen)}
         className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition shadow-lg active:scale-95 cursor-pointer relative group"
       >
         <Plus className="w-5 h-5 text-slate-300 group-hover:text-white transition" />
@@ -119,7 +122,7 @@ export function HeaderActions({
             {/* Backdrop for easy closing */}
             <div 
               className="fixed inset-0 z-40" 
-              onClick={() => setIsOpen(false)} 
+              onClick={() => onToggleOpen(false)} 
             />
             
             <motion.div
@@ -136,7 +139,7 @@ export function HeaderActions({
                      {language === 'bn' ? 'মৃধাক্স কন্ট্রোল প্যানেল' : 'MridhaX Control Center'}
                    </h3>
                 </div>
-                <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer">
+                <button onClick={() => onToggleOpen(false)} className="p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer">
                   <X className="w-4 h-4 text-slate-500" />
                 </button>
               </div>
@@ -151,7 +154,7 @@ export function HeaderActions({
                     <button
                       onClick={() => {
                         onOpenSocial();
-                        setIsOpen(false);
+                        onToggleOpen(false);
                       }}
                       className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/30 transition group cursor-pointer"
                     >
@@ -168,7 +171,7 @@ export function HeaderActions({
                     <button
                       onClick={() => {
                         onOpenSocial();
-                        setIsOpen(false);
+                        onToggleOpen(false);
                       }}
                       className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-blue-500/30 transition group cursor-pointer"
                     >
@@ -196,7 +199,7 @@ export function HeaderActions({
                         key={tool.id}
                         onClick={() => {
                           tool.onClick();
-                          if (tool.id !== 'lang') setIsOpen(false);
+                          if (tool.id !== 'lang') onToggleOpen(false);
                         }}
                         className="flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-900 transition group cursor-pointer"
                       >

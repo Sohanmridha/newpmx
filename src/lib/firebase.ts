@@ -38,6 +38,9 @@ export const loginWithGoogle = async () => {
   } catch (error: any) {
     if (error.code === 'auth/popup-blocked') {
       alert("Please allow popups for this site to sign in with Google.");
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      console.warn("Sign-in popup was closed by the user before completion.");
+      return null;
     }
     console.error("Login failed:", error.code, error.message);
     throw error;

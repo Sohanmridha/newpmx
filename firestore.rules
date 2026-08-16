@@ -22,6 +22,11 @@ service cloud.firestore {
                data.timestamp == request.time;
     }
 
+    // MessGroups
+    match /messGroups/{groupId} {
+      allow read, write: if true;
+    }
+    
     // Default Deny
     match /{document=**} {
       allow read, write: if false;
@@ -40,7 +45,7 @@ service cloud.firestore {
 
     // Messages
     match /messages/{messageId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       allow update, delete: if isOwner(existing().userId);
     }
@@ -54,13 +59,13 @@ service cloud.firestore {
     
     // Posts
     match /posts/{postId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && isEmailVerified() && isValidPost(incoming()) && incoming().userId == request.auth.uid;
       allow update: if isSignedIn() && isOwner(existing().userId) && incoming().userId == existing().userId;
       allow delete: if isSignedIn() && isOwner(existing().userId);
       
       match /comments/{commentId} {
-        allow read: if isSignedIn();
+        allow read: if true;
         allow create: if isSignedIn() && isEmailVerified() && incoming().userId == request.auth.uid && exists(/databases/$(database)/documents/posts/$(postId));
         allow delete: if isSignedIn() && isOwner(existing().userId);
       }

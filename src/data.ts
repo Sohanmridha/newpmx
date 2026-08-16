@@ -7,17 +7,13 @@ export const defaultState: AppState = {
   layoutMode: 'classic',
   language: 'bn',
   userProfile: {
-    name: 'Sohan Mridha',
-    age: '24',
-    grade: 'Graduate',
-    favSubjects: 'Physics, Coding',
-    interests: 'Lifestyle Architecture, Programming'
+    name: '',
+    age: '',
+    grade: '',
+    favSubjects: '',
+    interests: ''
   },
-  subjects: [
-    { id: '1', name: 'General Study', target: 60 },
-    { id: '2', name: 'React Development', target: 120 },
-    { id: '3', name: 'Mathematics MCQ', target: 45 }
-  ],
+  subjects: [],
   habits: [
     { id: 'h1', name: 'Quran Recitation / ধর্মীয় বই পড়া', time: 'সকাল' },
     { id: 'h2', name: 'Early Morning Wakeup', time: 'সকাল' },
@@ -107,7 +103,65 @@ export const defaultState: AppState = {
       'পড়াশোনার সময় সাধারণত লফি স্টাডি বিট বা বৃষ্টির শব্দ পছন্দ করেন',
       'প্রতিদিন সকালের অভ্যাসগুলো ট্র্যাক করার ব্যাপারে খুবই সচেতন'
     ]
-  }
+  },
+  weeklyTransformationTargets: [
+    { id: 'wt1', target: 'প্রতিদিন ৫ ওয়াক্ত নামাজ জামাতে পড়া', completed: false },
+    { id: 'wt2', target: 'মোবাইল স্ক্রিন টাইম কমিয়ে ৩ ঘন্টার নিচে আনা', completed: false },
+    { id: 'wt3', target: 'প্রতিদিন অন্তত ২ ঘণ্টা ফোকাসড পড়াশোনা করা', completed: false }
+  ],
+  personalDailyRoutines: {
+    0: [
+      { id: 'pd-0-1', taskName: 'ভোর ৫ টায় ঘুম থেকে ওঠা ও ফজর', timeSlot: '05:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-0-2', taskName: 'কোরআন তিলাওয়াত ও সকালের জিকির', timeSlot: '06:00 AM', durationHours: 0.5, completed: false },
+      { id: 'pd-0-3', taskName: 'মেকানিজম অফ ফোকাস পড়াশোনা সেশন ১', timeSlot: '08:00 AM', durationHours: 2.5, completed: false },
+      { id: 'pd-0-4', taskName: 'ব্যায়াম ও সকালের নাস্তা', timeSlot: '11:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-0-5', taskName: 'দুপুরের পড়াশোনা ও কোডিং সেশন ২', timeSlot: '02:00 PM', durationHours: 3, completed: false },
+      { id: 'pd-0-6', taskName: 'পারিবারিক সময় ও রিফ্লেকশন নোট', timeSlot: '08:30 PM', durationHours: 1.5, completed: false }
+    ],
+    1: [
+      { id: 'pd-1-1', taskName: 'ভোর ৫ টায় ঘুম থেকে ওঠা ও ফজর', timeSlot: '05:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-1-2', taskName: 'কোরআন তিলাওয়াত ও সকালের জিকির', timeSlot: '06:00 AM', durationHours: 0.5, completed: false },
+      { id: 'pd-1-3', taskName: 'মেকানিজম অফ ফোকাস পড়াশোনা সেশন ১', timeSlot: '08:00 AM', durationHours: 2.5, completed: false }
+    ],
+    2: [
+      { id: 'pd-2-1', taskName: 'ভোর ৫ টায় ঘুম থেকে ওঠা ও ফজর', timeSlot: '05:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-2-2', taskName: 'কোরআন তিলাওয়াত ও সকালের জিকির', timeSlot: '06:00 AM', durationHours: 0.5, completed: false },
+      { id: 'pd-2-3', taskName: 'মেকানিজম অফ ফোকাস পড়াশোনা সেশন ১', timeSlot: '08:00 AM', durationHours: 2.5, completed: false }
+    ],
+    3: [
+      { id: 'pd-3-1', taskName: 'ভোর ৫ টায় ঘুম থেকে ওঠা ও ফজর', timeSlot: '05:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-3-2', taskName: 'কোরআন তিলাওয়াত ও সকালের জিকির', timeSlot: '06:00 AM', durationHours: 0.5, completed: false },
+      { id: 'pd-3-3', taskName: 'মেকানিজম অফ ফোকাস পড়াশোনা সেশন ১', timeSlot: '08:00 AM', durationHours: 2.5, completed: false }
+    ],
+    4: [
+      { id: 'pd-4-1', taskName: 'ভোর ৫ টায় ঘুম থেকে ওঠা ও ফজর', timeSlot: '05:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-4-2', taskName: 'কোরআন তিলাওয়াত ও সকালের জিকির', timeSlot: '06:00 AM', durationHours: 0.5, completed: false },
+      { id: 'pd-4-3', taskName: 'মেকানিজম অফ ফোকাস পড়াশোনা সেশন ১', timeSlot: '08:00 AM', durationHours: 2.5, completed: false }
+    ],
+    5: [
+      { id: 'pd-5-1', taskName: 'ভোর ৫ টায় ঘুম থেকে ওঠা ও ফজর', timeSlot: '05:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-5-2', taskName: 'কোরআন তিলাওয়াত ও সকালের জিকির', timeSlot: '06:00 AM', durationHours: 0.5, completed: false },
+      { id: 'pd-5-3', taskName: 'মেকানিজম অফ ফোকাস পড়াশোনা সেশন ১', timeSlot: '08:00 AM', durationHours: 2.5, completed: false }
+    ],
+    6: [
+      { id: 'pd-6-1', taskName: 'ভোর ৫ টায় ঘুম থেকে ওঠা ও ফজর', timeSlot: '05:00 AM', durationHours: 1, completed: false },
+      { id: 'pd-6-2', taskName: 'কোরআন তিলাওয়াত ও সকালের জিকির', timeSlot: '06:00 AM', durationHours: 0.5, completed: false },
+      { id: 'pd-6-3', taskName: 'মেকানিজম অফ ফোকাস পড়াশোনা সেশন ১', timeSlot: '08:00 AM', durationHours: 2.5, completed: false }
+    ]
+  },
+  monthlyIncomeSource: 'Tution / Freelancing',
+  monthlyIncomeAmount: 12000,
+  cashFromHome: 3000,
+  financeTransactions: [
+    { id: 'tx-sample-1', type: 'income', amount: 3000, category: 'Home', description: 'বাড়ি থেকে পাঠানো টাকা', date: '2026-06-30' },
+    { id: 'tx-sample-2', type: 'expense', amount: 1500, category: 'Food', description: 'মেস খরচ ও বাজার', date: '2026-07-01' },
+    { id: 'tx-sample-3', type: 'expense', amount: 500, category: 'Books', description: 'নতুন প্রোগ্রামিং বই কেনা', date: '2026-07-01' }
+  ],
+  budgetWarningLimit: 8000,
+  lunchCookStartTime: '12:00',
+  lunchCookEndTime: '14:00',
+  dinnerCookStartTime: '20:00',
+  dinnerCookEndTime: '22:00'
 };
 
 // Creator messages from Sohan Mridha

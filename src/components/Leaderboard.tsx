@@ -10,6 +10,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { 
   Trophy, 
   Users, 
@@ -59,41 +60,53 @@ export const Leaderboard: React.FC<{ language: 'bn' | 'en' }> = ({ language }) =
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // We'll fetch all top users and filter client-side for privacy flags 
-    // (Ideally we'd filter in Firestore query, but flags are inside doc)
-    const q = query(
-      collection(db, 'users'),
-      orderBy('totalFocusMinutes', 'desc'),
-      limit(50)
-    );
+    let unsubscribeUsers: (() => void) | undefined;
+    let unsubscribeChat: (() => void) | undefined;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData: LeaderboardUser[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data() as LeaderboardUser;
-        usersData.push(data);
-      });
-      setUsers(usersData);
-      setLoading(false);
-    });
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const q = query(
+          collection(db, 'users'),
+          orderBy('totalFocusMinutes', 'desc'),
+          limit(50)
+        );
 
-    const chatQ = query(
-      collection(db, 'messages'),
-      orderBy('timestamp', 'desc'),
-      limit(50)
-    );
+        unsubscribeUsers = onSnapshot(q, (snapshot) => {
+          const usersData: LeaderboardUser[] = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data() as LeaderboardUser;
+            usersData.push(data);
+          });
+          setUsers(usersData);
+          setLoading(false);
+        });
 
-    const unsubscribeChat = onSnapshot(chatQ, (snapshot) => {
-      const msgs: ChatMessage[] = [];
-      snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() } as ChatMessage);
-      });
-      setMessages(msgs.reverse());
+        const chatQ = query(
+          collection(db, 'messages'),
+          orderBy('timestamp', 'desc'),
+          limit(50)
+        );
+
+        unsubscribeChat = onSnapshot(chatQ, (snapshot) => {
+          const msgs: ChatMessage[] = [];
+          snapshot.forEach((doc) => {
+            msgs.push({ id: doc.id, ...doc.data() } as ChatMessage);
+          });
+          setMessages(msgs.reverse());
+        });
+      } else {
+        if (unsubscribeUsers) unsubscribeUsers();
+        if (unsubscribeChat) unsubscribeChat();
+        setUsers([]);
+        setMessages([]);
+        setLoading(false);
+      }
     });
 
     return () => {
-      unsubscribe();
-      unsubscribeChat();
+      unsubAuth();
+      if (unsubscribeUsers) unsubscribeUsers();
+      if (unsubscribeChat) unsubscribeChat();
     };
   }, []);
 

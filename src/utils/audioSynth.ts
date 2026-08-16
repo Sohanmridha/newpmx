@@ -891,3 +891,686 @@ export function startWorkoutBeatSynth(volume: number = 0.5) {
   const interval = setInterval(playBeat, 460);
   currentNodes.intervals.push(interval);
 }
+
+// 21. FOREST BIRDS CHIRPING (পাখির কিচিরমিচির)
+export function startBirdsSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+  
+  // Background forest wind
+  const windNode = ctx.createBufferSource();
+  windNode.buffer = createNoiseBuffer(ctx, 'pink');
+  windNode.loop = true;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 350;
+  const windGain = ctx.createGain();
+  windGain.gain.value = volume * 0.04;
+  windNode.connect(filter);
+  filter.connect(windGain);
+  windGain.connect(ctx.destination);
+  windNode.start();
+  currentNodes.sources.push(windNode);
+  currentNodes.gains.push(windGain);
+
+  const chirp = () => {
+    if (Math.random() > 0.4) {
+      const count = Math.floor(Math.random() * 3) + 2;
+      let startTime = ctx.currentTime;
+      for (let i = 0; i < count; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        
+        const baseFreq = 2200 + Math.random() * 800;
+        osc.frequency.setValueAtTime(baseFreq, startTime);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq + 500, startTime + 0.05);
+        
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(volume * 0.06, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.06);
+        
+        osc.start(startTime);
+        osc.stop(startTime + 0.07);
+        startTime += 0.08 + Math.random() * 0.06;
+      }
+    }
+  };
+
+  chirp();
+  const interval = setInterval(chirp, 1600);
+  currentNodes.intervals.push(interval);
+}
+
+// 22. COZY STORM & COLD RAIN (মেঘাচ্ছন্ন বৃষ্টি ও বজ্রপাত)
+export function startCozyRainSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const rainNode = ctx.createBufferSource();
+  rainNode.buffer = createNoiseBuffer(ctx, 'pink');
+  rainNode.loop = true;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 550;
+  const rainGain = ctx.createGain();
+  rainGain.gain.value = volume * 0.22;
+  rainNode.connect(filter);
+  filter.connect(rainGain);
+  rainGain.connect(ctx.destination);
+  rainNode.start();
+  currentNodes.sources.push(rainNode);
+  currentNodes.gains.push(rainGain);
+
+  const thunder = () => {
+    if (Math.random() > 0.6) {
+      const osc = ctx.createOscillator();
+      const tGain = ctx.createGain();
+      const tFilter = ctx.createBiquadFilter();
+      osc.connect(tFilter);
+      tFilter.connect(tGain);
+      tGain.connect(ctx.destination);
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(40, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(15, ctx.currentTime + 3.0);
+      
+      tFilter.type = 'lowpass';
+      tFilter.frequency.setValueAtTime(60, ctx.currentTime);
+      
+      tGain.gain.setValueAtTime(0, ctx.currentTime);
+      tGain.gain.linearRampToValueAtTime(volume * 0.28, ctx.currentTime + 0.6);
+      tGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.5);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 3.6);
+    }
+  };
+
+  const interval = setInterval(thunder, 4500);
+  currentNodes.intervals.push(interval);
+}
+
+// 23. DEEP FOCUS RETENTION SYMPHONY (মনোযোগ ধরে রাখার মিউজিক)
+export function startDeepFocusSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+  
+  const playPad = (freq: number, startDelay: number, duration: number, voiceVol: number) => {
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const fGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(fGain);
+    fGain.connect(ctx.destination);
+    
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(freq - 1.2, ctx.currentTime + startDelay);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 1.5, ctx.currentTime + startDelay);
+    
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(280, ctx.currentTime + startDelay);
+    filter.frequency.exponentialRampToValueAtTime(500, ctx.currentTime + startDelay + duration / 2);
+    filter.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + startDelay + duration - 0.4);
+    
+    fGain.gain.setValueAtTime(0, ctx.currentTime + startDelay);
+    fGain.gain.linearRampToValueAtTime(voiceVol * volume * 0.22, ctx.currentTime + startDelay + 1.2);
+    fGain.gain.linearRampToValueAtTime(0, ctx.currentTime + startDelay + duration);
+    
+    osc1.start(ctx.currentTime + startDelay);
+    osc2.start(ctx.currentTime + startDelay);
+    osc1.stop(ctx.currentTime + startDelay + duration);
+    osc2.stop(ctx.currentTime + startDelay + duration);
+  };
+
+  const chordProgression = [
+    [130.81, 164.81, 196.00, 246.94], // C maj7 (C3, E3, G3, B3)
+    [146.83, 174.61, 220.00, 261.63], // D min7 (D3, F3, A3, C4)
+    [110.00, 130.81, 164.81, 196.00], // A min7 (A2, C3, E3, G3)
+    [130.81, 174.61, 220.00, 261.63]  // F maj7
+  ];
+
+  let currentChordIdx = 0;
+  const triggerNextChord = () => {
+    const notes = chordProgression[currentChordIdx];
+    notes.forEach((freq) => {
+      playPad(freq, 0, 7.8, 0.2);
+    });
+    currentChordIdx = (currentChordIdx + 1) % chordProgression.length;
+  };
+
+  triggerNextChord();
+  const interval = setInterval(triggerNextChord, 8000);
+  currentNodes.intervals.push(interval);
+}
+
+// 24. DEEP RELAXATION DRONE (গভীর শিথিলতা রাগ)
+export function startDeepRelaxSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const filter = ctx.createBiquadFilter();
+  const masterGain = ctx.createGain();
+
+  osc1.type = 'sine';
+  osc1.frequency.value = 87.31; // F2
+  osc2.type = 'triangle';
+  osc2.frequency.value = 130.81; // C3
+
+  filter.type = 'lowpass';
+  filter.frequency.value = 140;
+
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 0.04;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 70;
+
+  lfo.connect(lfoGain);
+  lfoGain.connect(filter.frequency);
+
+  masterGain.gain.value = volume * 0.32;
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(masterGain);
+  masterGain.connect(ctx.destination);
+
+  lfo.start();
+  osc1.start();
+  osc2.start();
+
+  currentNodes.sources.push(osc1, osc2, lfo);
+  currentNodes.gains.push(masterGain);
+}
+
+// 25. STUDY COGNITIVE COGNIZANCE (গামা স্টাডি তরঙ্গ)
+export function startStudyWaveSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const oscL = ctx.createOscillator();
+  const oscR = ctx.createOscillator();
+  const pannerL = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  const pannerR = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  const masterGain = ctx.createGain();
+
+  oscL.type = 'sine';
+  oscL.frequency.value = 220; // 220Hz
+
+  oscR.type = 'sine';
+  oscR.frequency.value = 260; // 260Hz (40Hz Gamma differential)
+
+  masterGain.gain.value = volume * 0.25;
+
+  if (pannerL && pannerR) {
+    pannerL.pan.value = -1;
+    pannerR.pan.value = 1;
+    oscL.connect(pannerL);
+    pannerL.connect(masterGain);
+    oscR.connect(pannerR);
+    pannerR.connect(masterGain);
+  } else {
+    oscL.connect(masterGain);
+    oscR.connect(masterGain);
+  }
+
+  masterGain.connect(ctx.destination);
+
+  oscL.start();
+  oscR.start();
+
+  currentNodes.sources.push(oscL, oscR);
+  currentNodes.gains.push(masterGain);
+}
+
+// 26. SHANTI MINIMALIST PIANO CHORDS (শান্ত পিয়ানো সুর)
+export function startPianoStudySynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const playPianoNote = (freq: number, velocity: number = 0.5) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(velocity * volume * 0.22, ctx.currentTime + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.2);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 2.3);
+  };
+
+  const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // Pentatonic C
+  const autoPlay = () => {
+    if (Math.random() > 0.3) {
+      const randomNote = scale[Math.floor(Math.random() * scale.length)];
+      playPianoNote(randomNote, 0.4 + Math.random() * 0.3);
+    }
+  };
+
+  autoPlay();
+  const interval = setInterval(autoPlay, 1300);
+  currentNodes.intervals.push(interval);
+}
+
+// 27. BUBBLING NATURE STREAM (পাহাড়ি ঝর্ণা ও বাতাস)
+export function startNatureStreamSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const streamBase = ctx.createBufferSource();
+  streamBase.buffer = createNoiseBuffer(ctx, 'pink');
+  streamBase.loop = true;
+  const sFilter = ctx.createBiquadFilter();
+  sFilter.type = 'bandpass';
+  sFilter.frequency.value = 420;
+  const sGain = ctx.createGain();
+  sGain.gain.value = volume * 0.12;
+  streamBase.connect(sFilter);
+  sFilter.connect(sGain);
+  sGain.connect(ctx.destination);
+  streamBase.start();
+  currentNodes.sources.push(streamBase);
+  currentNodes.gains.push(sGain);
+
+  const makeBubble = () => {
+    const osc = ctx.createOscillator();
+    const bGain = ctx.createGain();
+    osc.connect(bGain);
+    bGain.connect(ctx.destination);
+    
+    osc.type = 'sine';
+    const baseF = 380 + Math.random() * 400;
+    osc.frequency.setValueAtTime(baseF, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(baseF * 1.7, ctx.currentTime + 0.07);
+    
+    bGain.gain.setValueAtTime(0, ctx.currentTime);
+    bGain.gain.linearRampToValueAtTime(volume * 0.08, ctx.currentTime + 0.01);
+    bGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+  };
+
+  const interval = setInterval(() => {
+    if (Math.random() > 0.25) {
+      makeBubble();
+    }
+  }, 380);
+  currentNodes.intervals.push(interval);
+}
+
+// 28. TIBETAN PRAYER BELLS (তিব্বতি প্রার্থনা ঘণ্টা)
+export function startTibetanBellSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const playBowl = () => {
+    const osc = ctx.createOscillator();
+    const mod = ctx.createOscillator();
+    const mGain = ctx.createGain();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    mod.connect(mGain);
+    mGain.connect(osc.frequency);
+
+    osc.type = 'sine';
+    osc.frequency.value = 293.66; // D4
+
+    mod.type = 'sine';
+    mod.frequency.value = 3.2;
+    mGain.gain.value = 3.5;
+
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(volume * 0.3, ctx.currentTime + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4.2);
+
+    mod.start();
+    osc.start();
+    mod.stop(ctx.currentTime + 4.3);
+    osc.stop(ctx.currentTime + 4.3);
+  };
+
+  playBowl();
+  const interval = setInterval(playBowl, 5200);
+  currentNodes.intervals.push(interval);
+}
+
+// 29. GLITTERY COSMIC CHIMES (মহাজাগতিক ঝংকার)
+export function startCosmicChimesSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const playChimeNote = (freq: number) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(volume * 0.1, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.6);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 1.7);
+  };
+
+  const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
+  const interval = setInterval(() => {
+    if (Math.random() > 0.45) {
+      const notesToPlay = Math.random() > 0.75 ? 2 : 1;
+      for (let i = 0; i < notesToPlay; i++) {
+        const f = scale[Math.floor(Math.random() * scale.length)];
+        const delay = Math.random() * 0.12;
+        setTimeout(() => {
+          if (!ctx || ctx.state === 'closed') return;
+          playChimeNote(f);
+        }, delay * 1000);
+      }
+    }
+  }, 1200);
+  currentNodes.intervals.push(interval);
+}
+
+// 30. DEEP JAPANESE ZEN HARP (জেন্টল জেন হার্প)
+export function startZenHarpSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  const playPluck = (freq: number) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(900, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.35);
+
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(volume * 0.24, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.4);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 1.5);
+  };
+
+  const scale = [196.00, 220.00, 293.66, 329.63, 392.00, 440.00, 587.33];
+  const autoHarp = () => {
+    if (Math.random() > 0.35) {
+      const note = scale[Math.floor(Math.random() * scale.length)];
+      playPluck(note);
+    }
+  };
+
+  autoHarp();
+  const interval = setInterval(autoHarp, 1600);
+  currentNodes.intervals.push(interval);
+}
+
+// 31. RAIN ON WINDOW (জানালায় রিমঝিম বৃষ্টি)
+export function startRainWindowSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  // Dense rain on background
+  const rainNode = ctx.createBufferSource();
+  rainNode.buffer = createNoiseBuffer(ctx, 'pink');
+  rainNode.loop = true;
+  
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 450;
+  
+  const rainGain = ctx.createGain();
+  rainGain.gain.value = volume * 0.16;
+  
+  rainNode.connect(filter);
+  filter.connect(rainGain);
+  rainGain.connect(ctx.destination);
+  rainNode.start();
+  currentNodes.sources.push(rainNode);
+  currentNodes.gains.push(rainGain);
+
+  // Droplet hits on the glass pane
+  const playGlassDrip = () => {
+    if (Math.random() > 0.3) {
+      const osc = ctx.createOscillator();
+      const dripGain = ctx.createGain();
+      const dripFilter = ctx.createBiquadFilter();
+
+      osc.type = 'sine';
+      const f = 150 + Math.random() * 80;
+      osc.frequency.setValueAtTime(f, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(f * 0.4, ctx.currentTime + 0.12);
+
+      dripFilter.type = 'lowpass';
+      dripFilter.frequency.setValueAtTime(250, ctx.currentTime);
+
+      dripGain.gain.setValueAtTime(0, ctx.currentTime);
+      dripGain.gain.linearRampToValueAtTime(volume * 0.14, ctx.currentTime + 0.01);
+      dripGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+
+      osc.connect(dripFilter);
+      dripFilter.connect(dripGain);
+      dripGain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.16);
+    }
+  };
+
+  const interval = setInterval(playGlassDrip, 450);
+  currentNodes.intervals.push(interval);
+}
+
+// 32. BINAURAL DEEP STUDY (বাইনোরাল ডিপ স্টাডি বিট)
+export function startBinauralLofiSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  // 1. 10Hz Alpha / 14Hz Beta study wave differential
+  const leftOsc = ctx.createOscillator();
+  const rightOsc = ctx.createOscillator();
+  const pannerL = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  const pannerR = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  const waveGain = ctx.createGain();
+
+  leftOsc.type = 'sine';
+  leftOsc.frequency.value = 140; // 140Hz
+  rightOsc.type = 'sine';
+  rightOsc.frequency.value = 152; // 152Hz (12Hz Focus Alpha/Beta boundary)
+
+  waveGain.gain.value = volume * 0.18;
+
+  if (pannerL && pannerR) {
+    pannerL.pan.value = -1;
+    pannerR.pan.value = 1;
+    leftOsc.connect(pannerL);
+    pannerL.connect(waveGain);
+    rightOsc.connect(pannerR);
+    pannerR.connect(waveGain);
+  } else {
+    leftOsc.connect(waveGain);
+    rightOsc.connect(waveGain);
+  }
+  waveGain.connect(ctx.destination);
+  leftOsc.start();
+  rightOsc.start();
+  currentNodes.sources.push(leftOsc, rightOsc);
+
+  // 2. Slow deep soothing lofi pads
+  const playSoothingPad = (freq: number, startDelay: number, duration: number) => {
+    const osc = ctx.createOscillator();
+    const padGain = ctx.createGain();
+    const padFilter = ctx.createBiquadFilter();
+
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+
+    padFilter.type = 'lowpass';
+    padFilter.frequency.setValueAtTime(180, ctx.currentTime + startDelay);
+    padFilter.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + startDelay + duration / 2);
+    padFilter.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + startDelay + duration);
+
+    padGain.gain.setValueAtTime(0, ctx.currentTime + startDelay);
+    padGain.gain.linearRampToValueAtTime(volume * 0.12, ctx.currentTime + startDelay + 1.5);
+    padGain.gain.linearRampToValueAtTime(0, ctx.currentTime + startDelay + duration);
+
+    osc.connect(padFilter);
+    padFilter.connect(padGain);
+    padGain.connect(ctx.destination);
+
+    osc.start(ctx.currentTime + startDelay);
+    osc.stop(ctx.currentTime + startDelay + duration);
+  };
+
+  const padNotes = [130.81, 164.81, 196.00]; // C Major
+  let cycle = 0;
+  const loopPads = () => {
+    const root = cycle % 2 === 0 ? 130.81 : 146.83; // Alternating root notes C3 / D3
+    playSoothingPad(root, 0, 7.8);
+    playSoothingPad(root * 1.25, 0.5, 7.3); // Minor/Major third
+    playSoothingPad(root * 1.5, 1.0, 6.8); // Fifth
+    cycle++;
+  };
+
+  loopPads();
+  const interval = setInterval(loopPads, 8000);
+  currentNodes.intervals.push(interval);
+}
+
+// 33. WHITE RAIN AMBIENT (সাদা শোরগোল ও বৃষ্টি)
+export function startWhiteRainSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  // White noise noise-blocking element
+  const whiteNode = ctx.createBufferSource();
+  whiteNode.buffer = createNoiseBuffer(ctx, 'white');
+  whiteNode.loop = true;
+  
+  const whiteFilter = ctx.createBiquadFilter();
+  whiteFilter.type = 'bandpass';
+  whiteFilter.frequency.value = 1000;
+  whiteFilter.Q.value = 1.2;
+  
+  const whiteGain = ctx.createGain();
+  whiteGain.gain.value = volume * 0.05;
+
+  whiteNode.connect(whiteFilter);
+  whiteFilter.connect(whiteGain);
+  whiteGain.connect(ctx.destination);
+  whiteNode.start();
+  currentNodes.sources.push(whiteNode);
+  currentNodes.gains.push(whiteGain);
+
+  // Deep Pink Rain roaring element
+  const rainNode = ctx.createBufferSource();
+  rainNode.buffer = createNoiseBuffer(ctx, 'pink');
+  rainNode.loop = true;
+  
+  const rainFilter = ctx.createBiquadFilter();
+  rainFilter.type = 'lowpass';
+  rainFilter.frequency.value = 750;
+  
+  const rainGain = ctx.createGain();
+  rainGain.gain.value = volume * 0.18;
+
+  rainNode.connect(rainFilter);
+  rainFilter.connect(rainGain);
+  rainGain.connect(ctx.destination);
+  rainNode.start();
+  currentNodes.sources.push(rainNode);
+  currentNodes.gains.push(rainGain);
+}
+
+// 34. DEEP SPACE DRONE (মহাজাগতিক শূন্যতা - নয়েজ ক্যান্সেলেশন)
+export function startSpaceDroneSynth(volume: number = 0.5) {
+  stopAllSynthSounds();
+  const ctx = getAudioContext();
+
+  // Base Brown Noise acting as sub-audio rumble
+  const noise = ctx.createBufferSource();
+  noise.buffer = createNoiseBuffer(ctx, 'brown');
+  noise.loop = true;
+
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.value = 95;
+
+  const droneGain = ctx.createGain();
+  droneGain.gain.value = volume * 0.45;
+
+  noise.connect(lowpass);
+  lowpass.connect(droneGain);
+  droneGain.connect(ctx.destination);
+  noise.start();
+  currentNodes.sources.push(noise);
+  currentNodes.gains.push(droneGain);
+
+  // Sub hum oscillators (55Hz / 82.4Hz)
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const oscGain = ctx.createGain();
+
+  osc1.type = 'sine';
+  osc1.frequency.value = 55.00; // A1
+  osc2.type = 'sine';
+  osc2.frequency.value = 82.41; // E2
+
+  // Slow LFO sweeping filter for resonance
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 0.05; // 20s cycle
+
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 15;
+
+  const humFilter = ctx.createBiquadFilter();
+  humFilter.type = 'lowpass';
+  humFilter.frequency.value = 70;
+
+  lfo.connect(lfoGain);
+  lfoGain.connect(humFilter.frequency);
+
+  oscGain.gain.value = volume * 0.28;
+
+  osc1.connect(humFilter);
+  osc2.connect(humFilter);
+  humFilter.connect(oscGain);
+  oscGain.connect(ctx.destination);
+
+  lfo.start();
+  osc1.start();
+  osc2.start();
+
+  currentNodes.sources.push(osc1, osc2, lfo);
+  currentNodes.gains.push(oscGain);
+}

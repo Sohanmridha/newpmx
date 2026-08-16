@@ -4,6 +4,7 @@ export interface SubjectItem {
   id: string;
   name: string;
   target: number; // in minutes
+  chapters?: Chapter[];
 }
 
 export interface HabitItem {
@@ -72,6 +73,7 @@ export interface Chapter {
   id: string;
   name: string;
   isCompleted: boolean;
+  hoursSpent?: number;
 }
 
 export interface ExamSubject {
@@ -88,6 +90,24 @@ export interface ExamPrepInfo {
   subjects: ExamSubject[];
   badges: string[]; // New: earned rewards/badges
   category?: 'Final' | 'Midterm' | 'Mock'; // New: exam category
+}
+
+export interface MessTransaction {
+  id: string;
+  date: string;
+  type: 'cooking' | 'room_rent' | 'others';
+  amount: number;
+  paidBy: string;
+  description: string;
+}
+
+export interface MessDebt {
+  id: string;
+  fromPerson: string;
+  toPerson: string;
+  amount: number;
+  reason: string;
+  date?: string;
 }
 
 export interface AppState {
@@ -159,4 +179,66 @@ export interface AppState {
   };
   prayerNotifications?: Record<string, { enabled: boolean; triggerOffset: number }>;
   prayerLocation?: { lat: number; lng: number; name: string; isCustom: boolean };
+  weeklyTransformationTargets?: WeeklyTransformationTarget[];
+  personalDailyRoutines?: Record<number, PersonalRoutineItem[]>;
+  monthlyIncomeSource?: string;
+  monthlyIncomeAmount?: number;
+  cashFromHome?: number;
+  financeTransactions?: FinanceTransaction[];
+  debts?: DebtItem[];
+  budgetWarningLimit?: number;
+  lunchCookStartTime?: string;
+  lunchCookEndTime?: string;
+  dinnerCookStartTime?: string;
+  dinnerCookEndTime?: string;
+  messTransactions?: MessTransaction[];
+  messDebts?: MessDebt[];
+  messAccessCode?: string | null;
+  messMeals?: MessMeal[];
+  messMembers?: string[];
 }
+
+export interface MessMeal {
+  id: string;
+  memberName: string;
+  date: string;
+  lunchCount: number;
+  dinnerCount: number;
+}
+
+export interface WeeklyTransformationTarget {
+  id: string;
+  target: string;
+  completed: boolean;
+}
+
+export interface PersonalRoutineItem {
+  id: string;
+  taskName: string;
+  timeSlot: string;
+  durationHours: number;
+  completed: boolean;
+}
+
+export interface FinanceTransaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  category: string;
+  description: string;
+  date: string; // ISO format or YYYY-MM-DD
+}
+
+export interface DebtItem {
+  id: string;
+  type: 'borrowed' | 'lent'; // 'borrowed' = I took money, 'lent' = I gave money
+  personName: string;
+  amount: number;
+  date: string;
+  dueDate?: string;
+  status: 'pending' | 'paid';
+  paidAmount: number; // For future-proof partial/full logging
+  description?: string;
+}
+
+

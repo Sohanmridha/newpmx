@@ -1,6 +1,6 @@
 {
-  "name": "MridhaX AI",
-  "description": "Premium Lifestyle & Productivity Dashboard with AI insights, global leaderboard, and real-time study partners syncing.",
-  "requestFramePermissions": ["microphone", "geolocation"],
+  "name": "AI Voice Transformation",
+  "description": "30-Day Cinematic AI Voice Training, Breath & Resonance Coaching, RJ-Style Delivery, Dynamic Tree Growth, and Progress Tracking App.",
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

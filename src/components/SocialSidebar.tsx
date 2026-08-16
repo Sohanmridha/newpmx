@@ -22,6 +22,7 @@ import {
   where
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface OnlineUser {
   userId: string;
@@ -54,51 +55,70 @@ export const SocialSidebar: React.FC<{
   const setIsOpen = onToggle || setInternalIsOpen;
 
   useEffect(() => {
-    // Fetch online users active in the last 10 minutes
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-    const q = query(
-      collection(db, 'users'),
-      where('lastUpdated', '>=', Timestamp.fromDate(tenMinutesAgo)),
-      orderBy('lastUpdated', 'desc'),
-      limit(20)
-    );
+    let unsubscribe: (() => void) | undefined;
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const q = query(
+          collection(db, 'users'),
+          where('lastUpdated', '>=', Timestamp.fromDate(tenMinutesAgo)),
+          orderBy('lastUpdated', 'desc'),
+          limit(20)
+        );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users: OnlineUser[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data() as OnlineUser;
-        if (data.userId !== auth.currentUser?.uid) {
-           users.push(data);
-        }
-      });
-      setOnlineUsers(users);
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const users: OnlineUser[] = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data() as OnlineUser;
+            if (data.userId !== user.uid) {
+               users.push(data);
+            }
+          });
+          setOnlineUsers(users);
+        });
+      } else {
+        if (unsubscribe) unsubscribe();
+        setOnlineUsers([]);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubAuth();
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (!activeChat || !auth.currentUser) return;
+    if (!activeChat) return;
 
-    // Fetch messages between current user and activeChat user
-    // For simplicity in this demo, we'll use a shared room ID: min(uid1, uid2) + max(uid1, uid2)
-    const roomId = [auth.currentUser.uid, activeChat.userId].sort().join('_');
-    const q = query(
-      collection(db, 'direct_messages'),
-      where('roomId', '==', roomId),
-      orderBy('timestamp', 'asc'),
-      limit(50)
-    );
+    let unsubscribe: (() => void) | undefined;
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const roomId = [user.uid, activeChat.userId].sort().join('_');
+        const q = query(
+          collection(db, 'direct_messages'),
+          where('roomId', '==', roomId),
+          orderBy('timestamp', 'asc'),
+          limit(50)
+        );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs: Message[] = [];
-      snapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() } as Message);
-      });
-      setMessages(msgs);
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const msgs: Message[] = [];
+          snapshot.forEach((doc) => {
+            msgs.push({ id: doc.id, ...doc.data() } as Message);
+          });
+          setMessages(msgs);
+        });
+      } else {
+        if (unsubscribe) unsubscribe();
+        setMessages([]);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubAuth();
+      if (unsubscribe) unsubscribe();
+    };
   }, [activeChat]);
 
   const sendMessage = async (e: React.FormEvent) => {

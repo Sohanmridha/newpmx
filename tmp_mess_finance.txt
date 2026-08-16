@@ -1,0 +1,483 @@
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Wallet, Coins, Plus, Trash2, Home, TrendingUp, Handshake, Calendar, X, CalendarDays
+} from 'lucide-react';
+import { AppState, MessTransaction, MessDebt } from '../types';
+
+interface MessFinanceTrackerProps {
+  state: AppState;
+  updateState: (updates: Partial<AppState>) => void;
+}
+
+export const MessFinanceTracker: React.FC<MessFinanceTrackerProps> = ({ state, updateState }) => {
+  const transactions = state.messTransactions || [];
+  const debts = state.messDebts || [];
+  const isBn = state.language === 'bn';
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const currentMonthStr = todayStr.substring(0, 7);
+
+  const [activeTab, setActiveTab] = useState<'calendar' | 'transactions' | 'debts'>('calendar');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showDebtForm, setShowDebtForm] = useState(false);
+
+  // Transaction form states
+  const [tType, setTType] = useState<'cooking' | 'room_rent' | 'others'>('cooking');
+  const [tAmount, setTAmount] = useState('');
+  const [tPaidBy, setTPaidBy] = useState('');
+  const [tDesc, setTDesc] = useState('');
+  const [tDate, setTDate] = useState(todayStr);
+
+  // Debt form states
+  const [dFrom, setDFrom] = useState('');
+  const [dTo, setDTo] = useState('');
+  const [dAmount, setDAmount] = useState('');
+  const [dReason, setDReason] = useState('');
+  const [dDate, setDDate] = useState(todayStr); // using same type but wait, debt doesn't have date in type? Let's check type.
+
+  // Calculations
+  const todayCookingCost = useMemo(() => {
+    return transactions
+      .filter(t => t.date === todayStr && t.type === 'cooking')
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [transactions, todayStr]);
+
+  const monthTotalCost = useMemo(() => {
+    return transactions
+      .filter(t => t.date.startsWith(currentMonthStr))
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [transactions, currentMonthStr]);
+
+  const addTransaction = () => {
+    if (!tAmount || !tPaidBy || !tDesc || !tDate) return;
+    const newTx: MessTransaction = {
+      id: Date.now().toString(),
+      date: tDate,
+      type: tType,
+      amount: parseFloat(tAmount),
+      paidBy: tPaidBy,
+      description: tDesc,
+    };
+    updateState({ messTransactions: [...transactions, newTx] });
+    setTAmount(''); setTPaidBy(''); setTDesc(''); setTDate(todayStr);
+    setShowAddForm(false);
+  };
+
+  const deleteTransaction = (id: string) => {
+    updateState({ messTransactions: transactions.filter(t => t.id !== id) });
+  };
+
+  const addDebt = () => {
+    if (!dFrom || !dTo || !dAmount || !dReason) return;
+    const newDebt: MessDebt = {
+      id: Date.now().toString(),
+      fromPerson: dFrom,
+      toPerson: dTo,
+      amount: parseFloat(dAmount),
+      reason: dReason,
+      
+      date: dDate // Wait, did I add date to MessDebt? Let me check types.ts
+    };
+    updateState({ messDebts: [...debts, newDebt] });
+    setDFrom(''); setDTo(''); setDAmount(''); setDReason(''); setDDate(todayStr);
+    setShowDebtForm(false);
+  };
+
+  const deleteDebt = (id: string) => {
+    updateState({ messDebts: debts.filter(d => d.id !== id) });
+  };
+
+  // Calendar logic
+  const daysInMonth = useMemo(() => {
+    const [year, month] = currentMonthStr.split('-').map(Number);
+    const date = new Date(year, month, 0);
+    return date.getDate();
+  }, [currentMonthStr]);
+
+  const firstDayOfMonth = useMemo(() => {
+    const [year, month] = currentMonthStr.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    return date.getDay();
+  }, [currentMonthStr]);
+
+  const dailyExpenses = useMemo(() => {
+    const expenses: Record<string, number> = {};
+    transactions.forEach(t => {
+      if (t.date.startsWith(currentMonthStr)) {
+        expenses[t.date] = (expenses[t.date] || 0) + t.amount;
+      }
+    });
+    return expenses;
+  }, [transactions, currentMonthStr]);
+
+  const getDayName = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const days = isBn ? ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[d.getDay()];
+  };
+
+  return (
+    <div className="mt-8 relative z-10">
+      <div className="p-6 rounded-[24px] bg-gradient-to-br from-slate-900/80 to-slate-950 border border-slate-800 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+        
+        {/* Ambient Glow */}
+        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none animate-pulse" />
+        <div className="absolute bottom-[-50px] left-[-50px] w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none animate-pulse" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
+          <div>
+            <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+              <Wallet className="w-6 h-6 text-cyan-400" />
+              {isBn ? 'মেস ও রুমের খরচ' : 'Mess & Room Expenses'}
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">
+              {isBn ? 'রান্না, রুম ভাড়া এবং অন্যান্য হিসাব' : 'Cooking, Rent, and shared accounts'}
+            </p>
+          </div>
+        </div>
+
+        {/* Cinematic Dashboard Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 relative z-10">
+          <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800/80 shadow-inner flex flex-col justify-center items-center text-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <Coins className="w-8 h-8 text-cyan-400 mb-2 drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]" />
+            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{isBn ? 'আজকের রান্নার খরচ' : "Today's Cooking"}</p>
+            <p className="text-3xl font-black text-cyan-300 font-mono mt-1">৳{todayCookingCost}</p>
+          </div>
+          <div className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800/80 shadow-inner flex flex-col justify-center items-center text-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <Home className="w-8 h-8 text-blue-400 mb-2 drop-shadow-[0_0_10px_rgba(96,165,250,0.6)]" />
+            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{isBn ? 'এই মাসের মোট খরচ' : "This Month's Total"}</p>
+            <p className="text-3xl font-black text-blue-300 font-mono mt-1">৳{monthTotalCost}</p>
+          </div>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 mb-6 relative z-10">
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'calendar' 
+                ? 'bg-amber-500/20 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]' 
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {isBn ? 'খরচ ক্যালেন্ডার' : 'Calendar'}
+          </button>
+          <button
+            onClick={() => setActiveTab('transactions')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'transactions' 
+                ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {isBn ? 'খরচের তালিকা' : 'Expense Log'}
+          </button>
+          <button
+            onClick={() => setActiveTab('debts')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+              activeTab === 'debts' 
+                ? 'bg-purple-500/20 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.2)]' 
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {isBn ? 'কে কত পাবে / দিবে' : 'Who Owes Whom'}
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="relative z-10 min-h-[300px]">
+          <AnimatePresence mode="wait">
+            
+            {activeTab === 'calendar' && (
+              <motion.div
+                key="calendar"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-4"
+              >
+                <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-950/10 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-amber-400 font-bold flex items-center gap-2">
+                      <CalendarDays className="w-5 h-5" />
+                      {new Date().toLocaleString(isBn ? 'bn-BD' : 'en-US', { month: 'long', year: 'numeric' })}
+                    </h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-2">
+                    {/* Days Header */}
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                      <div key={i} className="text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        {isBn ? ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'][i] : d}
+                      </div>
+                    ))}
+                    
+                    {/* Empty Slots */}
+                    {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                      <div key={`empty-${i}`} className="h-14 sm:h-16 rounded-lg bg-slate-900/30 border border-slate-800/30" />
+                    ))}
+                    
+                    {/* Calendar Days */}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const dateStr = `${currentMonthStr}-${day.toString().padStart(2, '0')}`;
+                      const isToday = dateStr === todayStr;
+                      const expense = dailyExpenses[dateStr] || 0;
+                      const hasExpense = expense > 0;
+                      
+                      return (
+                        <div 
+                          key={dateStr} 
+                          className={`relative h-14 sm:h-16 rounded-lg border flex flex-col p-1 sm:p-2 overflow-hidden transition-all duration-300
+                            ${isToday 
+                              ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]' 
+                              : hasExpense
+                                ? 'border-cyan-500/30 bg-cyan-900/20 hover:border-cyan-400/50'
+                                : 'border-slate-800/50 bg-slate-900/50 hover:border-slate-700'
+                            }
+                          `}
+                        >
+                          <span className={`text-[10px] sm:text-xs font-bold ${isToday ? 'text-amber-400' : 'text-slate-400'}`}>
+                            {day}
+                          </span>
+                          
+                          {hasExpense && (
+                            <div className="mt-auto">
+                              <span className="text-[9px] sm:text-[10px] font-mono font-black text-cyan-300 bg-cyan-950/80 px-1 py-0.5 rounded flex items-center justify-center">
+                                ৳{expense}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* Glow effect for expenses */}
+                          {hasExpense && (
+                            <div className="absolute inset-0 bg-cyan-400/5 rounded-lg blur-md pointer-events-none" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'transactions' && (
+              <motion.div
+                key="tx"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-4"
+              >
+                {!showAddForm ? (
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="w-full py-4 rounded-xl border-2 border-dashed border-slate-700 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-800/50 hover:border-cyan-500/50 hover:text-cyan-400 transition-all group"
+                  >
+                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                    {isBn ? 'নতুন খরচ যোগ করুন' : 'Add New Expense'}
+                  </button>
+                ) : (
+                  <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/10 space-y-4 relative overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.1)]">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-cyan-400 font-bold text-sm">{isBn ? 'খরচ এন্ট্রি' : 'Expense Entry'}</h4>
+                      <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-red-400"><X className="w-5 h-5"/></button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'ধরন' : 'Category'}</label>
+                        <select 
+                          value={tType} onChange={(e: any) => setTType(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-cyan-500 shadow-inner"
+                        >
+                          <option value="cooking">{isBn ? 'রান্না / বাজার' : 'Cooking'}</option>
+                          <option value="room_rent">{isBn ? 'রুম ভাড়া' : 'Room Rent'}</option>
+                          <option value="others">{isBn ? 'অন্যান্য' : 'Others'}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'তারিখ' : 'Date'}</label>
+                        <input 
+                          type="date" value={tDate} onChange={(e) => setTDate(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-cyan-500 shadow-inner [color-scheme:dark]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'টাকার পরিমাণ' : 'Amount'}</label>
+                        <input 
+                          type="number" value={tAmount} onChange={(e) => setTAmount(e.target.value)} placeholder="0.00"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-cyan-500 shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'কে টাকা দিলো?' : 'Paid By'}</label>
+                        <input 
+                          type="text" value={tPaidBy} onChange={(e) => setTPaidBy(e.target.value)} placeholder="Name..."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-cyan-500 shadow-inner"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'বিবরণ' : 'Description'}</label>
+                        <input 
+                          type="text" value={tDesc} onChange={(e) => setTDesc(e.target.value)} placeholder="Details..."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-cyan-500 shadow-inner"
+                        />
+                      </div>
+                    </div>
+                    <button 
+                      onClick={addTransaction}
+                      className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(8,145,178,0.5)]"
+                    >
+                      {isBn ? 'যোগ করুন' : 'Add Expense'}
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-3 mt-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {transactions.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
+                    <div key={t.id} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between group hover:border-slate-700 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
+                          t.type === 'cooking' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                          t.type === 'room_rent' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-slate-700 text-slate-300 border border-slate-600'
+                        }`}>
+                          {t.type === 'cooking' ? <TrendingUp className="w-5 h-5"/> : <Home className="w-5 h-5"/>}
+                        </div>
+                        <div>
+                          <p className="text-slate-200 font-bold">{t.description}</p>
+                          <p className="text-xs text-slate-500 flex items-center gap-1">
+                            <span className="text-amber-400/80">{getDayName(t.date)}</span> • {t.date} • {isBn ? 'দিয়েছে:' : 'Paid by:'} <span className="text-cyan-400">{t.paidBy}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <p className="text-lg font-mono font-black text-slate-200 drop-shadow-md">৳{t.amount}</p>
+                        <button onClick={() => deleteTransaction(t.id)} className="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                          <Trash2 className="w-4 h-4"/>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {transactions.length === 0 && (
+                    <div className="text-center py-10 text-slate-500 text-sm">
+                      {isBn ? 'কোনো খরচ এন্ট্রি নেই।' : 'No expenses logged.'}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'debts' && (
+              <motion.div
+                key="debts"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-4"
+              >
+                {!showDebtForm ? (
+                  <button
+                    onClick={() => setShowDebtForm(true)}
+                    className="w-full py-4 rounded-xl border-2 border-dashed border-slate-700 text-slate-400 font-bold flex items-center justify-center gap-2 hover:bg-slate-800/50 hover:border-purple-500/50 hover:text-purple-400 transition-all group"
+                  >
+                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                    {isBn ? 'নতুন পাওনা যোগ করুন' : 'Add Debt/Owe'}
+                  </button>
+                ) : (
+                  <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-950/10 space-y-4 relative overflow-hidden shadow-[0_0_30px_rgba(168,85,247,0.1)]">
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-purple-400 font-bold text-sm">{isBn ? 'পাওনা এন্ট্রি' : 'Debt Entry'}</h4>
+                      <button onClick={() => setShowDebtForm(false)} className="text-slate-400 hover:text-red-400"><X className="w-5 h-5"/></button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'কে দিবে?' : 'Who Owes?'}</label>
+                        <input 
+                          type="text" value={dFrom} onChange={(e) => setDFrom(e.target.value)} placeholder="From..."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-purple-500 shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'কাকে দিবে?' : 'To Whom?'}</label>
+                        <input 
+                          type="text" value={dTo} onChange={(e) => setDTo(e.target.value)} placeholder="To..."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-purple-500 shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'তারিখ' : 'Date'}</label>
+                        <input 
+                          type="date" value={dDate} onChange={(e) => setDDate(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-purple-500 shadow-inner [color-scheme:dark]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'পরিমাণ' : 'Amount'}</label>
+                        <input 
+                          type="number" value={dAmount} onChange={(e) => setDAmount(e.target.value)} placeholder="0.00"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-purple-500 shadow-inner"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-xs text-slate-400 mb-1 block">{isBn ? 'কারণ' : 'Reason'}</label>
+                        <input 
+                          type="text" value={dReason} onChange={(e) => setDReason(e.target.value)} placeholder="Why..."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 outline-none focus:border-purple-500 shadow-inner"
+                        />
+                      </div>
+                    </div>
+                    <button 
+                      onClick={addDebt}
+                      className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(147,51,234,0.5)]"
+                    >
+                      {isBn ? 'যোগ করুন' : 'Add Entry'}
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-3 mt-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {debts.slice().reverse().map(d => (
+                    <div key={d.id} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between group hover:border-slate-700 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center shadow-lg">
+                          <Handshake className="w-5 h-5"/>
+                        </div>
+                        <div>
+                          <p className="text-slate-200 font-bold text-sm">
+                            <span className="text-red-400">{d.fromPerson}</span> 
+                            <span className="text-slate-500 mx-2">→</span> 
+                            <span className="text-emerald-400">{d.toPerson}</span>
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                            {/* @ts-ignore */}
+                            <span className="text-amber-400/80">{d.date ? getDayName(d.date) : ''}</span> {d.date ? `• ${d.date} •` : ''} {d.reason}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <p className="text-lg font-mono font-black text-slate-200 drop-shadow-md">৳{d.amount}</p>
+                        <button onClick={() => deleteDebt(d.id)} className="p-2 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                          <Trash2 className="w-4 h-4"/>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {debts.length === 0 && (
+                    <div className="text-center py-10 text-slate-500 text-sm">
+                      {isBn ? 'কোনো পাওনার হিসাব নেই।' : 'No debt entries.'}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+};
