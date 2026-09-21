@@ -14,43 +14,57 @@ import {
   ArrowRight,
   ShieldAlert,
   Flame,
-  Settings
+  Settings,
+  Lock,
+  BookOpen,
+  BarChart3,
+  Wind,
+  Volume2,
+  Activity,
+  Check
 } from 'lucide-react';
 import { DayCurriculum, SessionPlan, Language, VoiceState } from '../types/voice';
-import { getCurriculumForDay } from '../data/voiceCurriculum';
-import { BookOpen, BarChart3, Wind, Volume2, Activity } from 'lucide-react';
+import { getCurriculumForDay, YEAR_365_CYCLES, getYearCycleForDay } from '../data/voiceCurriculum';
 
 interface TrainingViewProps {
   currentDay: number;
   voiceState: VoiceState;
   language: Language;
-  onSelectDay: (day: number) => void;
   onOpenSession: (session: SessionPlan) => void;
   onOpenDailyReport?: (day: number) => void;
   onOpenScientificReading?: () => void;
+  onAdvanceNextDay?: () => void;
 }
 
 export function TrainingView({
   currentDay,
   voiceState,
   language,
-  onSelectDay,
   onOpenSession,
   onOpenDailyReport,
-  onOpenScientificReading
+  onOpenScientificReading,
+  onAdvanceNextDay
 }: TrainingViewProps) {
-  const [activeDay, setActiveDay] = useState(currentDay);
+  const [activeDay, setActiveDay] = useState<number>(currentDay);
+  const activeCycle = getYearCycleForDay(activeDay);
+  const [selectedCycleNum, setSelectedCycleNum] = useState<number>(activeCycle.cycleNumber);
+
   const curriculum = getCurriculumForDay(activeDay);
 
   const todayKey = new Date().toISOString().split('T')[0];
-  const dayLog = voiceState.dayLogsByDay?.[activeDay] || voiceState.todayLogs[todayKey];
+  const dayLog = voiceState.dayLogsByDay?.[activeDay] || (activeDay === voiceState.currentDay ? voiceState.todayLogs[todayKey] : undefined);
 
+  const isPastDay = activeDay < voiceState.currentDay;
+  const isCurrentDay = activeDay === voiceState.currentDay;
+  const isFutureDay = activeDay > voiceState.currentDay;
+
+  // Real logged time (clean 0 if nothing recorded yet)
   const timeBreakdown = dayLog?.timeBreakdown || {
-    breathSeconds: (dayLog?.breathCompleted ? 8 * 60 : 0) + (activeDay <= voiceState.currentDay ? 240 : 0),
-    voiceSeconds: (dayLog?.voiceCompleted ? 14 * 60 : 0) + (activeDay <= voiceState.currentDay ? 420 : 0),
-    bodySeconds: (dayLog?.bodyCompleted ? 6 * 60 : 0) + (activeDay <= voiceState.currentDay ? 180 : 0),
-    readingSeconds: (dayLog?.sessionsCompleted?.afternoon ? 10 * 60 : 0) + (activeDay <= voiceState.currentDay ? 300 : 0),
-    recoverySeconds: (dayLog?.recoveryCompleted ? 8 * 60 : 0) + (activeDay <= voiceState.currentDay ? 240 : 0),
+    breathSeconds: 0,
+    voiceSeconds: 0,
+    bodySeconds: 0,
+    readingSeconds: 0,
+    recoverySeconds: 0,
     totalSeconds: 0
   };
 
@@ -58,15 +72,43 @@ export function TrainingView({
     (timeBreakdown.breathSeconds + timeBreakdown.voiceSeconds + timeBreakdown.bodySeconds + timeBreakdown.readingSeconds + timeBreakdown.recoverySeconds) / 60
   );
 
+  // Check if today is 100% completed
+  const completedSessionsCount = [
+    dayLog?.sessionsCompleted?.morning,
+    dayLog?.sessionsCompleted?.afternoon,
+    dayLog?.sessionsCompleted?.evening,
+    dayLog?.sessionsCompleted?.night
+  ].filter(Boolean).length;
+
+  const isTodayAllDone = isCurrentDay && (completedSessionsCount >= 4 || (dayLog?.dailyProgressPct || 0) >= 100);
+
   return (
     <div className="w-full max-w-xl mx-auto space-y-5 pb-24 select-none animate-fade-in">
-      {/* Top Header & Day Selector Carousel */}
+      {/* Top Header & 365-Day Cycle Navigation */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-              {language === 'bn' ? '৩০ দিনের পূর্ণাঙ্গ সিলেবাস' : '30-Day Transformation Curriculum'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                {language === 'bn' ? `সাইকেল #${activeCycle.cycleNumber} (৩৬৫ দিনের জার্নি)` : `Cycle #${activeCycle.cycleNumber} (365-Day Journey)`}
+              </span>
+              {isPastDay && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                  {language === 'bn' ? 'সম্পন্ন' : 'Completed'}
+                </span>
+              )}
+              {isCurrentDay && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950 font-black animate-pulse">
+                  {language === 'bn' ? 'আজকের দিন' : 'Today'}
+                </span>
+              )}
+              {isFutureDay && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  {language === 'bn' ? 'লক করা' : 'Locked'}
+                </span>
+              )}
+            </div>
             <h2 className="text-xl font-black text-white">
               {language === 'bn' ? `দিন ${activeDay}: ${curriculum.stageNameBn}` : `Day ${activeDay}: ${curriculum.stageNameEn}`}
             </h2>
@@ -77,7 +119,6 @@ export function TrainingView({
               onClick={() => {
                 const nextD = Math.max(1, activeDay - 1);
                 setActiveDay(nextD);
-                onSelectDay(nextD);
               }}
               disabled={activeDay <= 1}
               className="p-2 rounded-xl text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
@@ -85,15 +126,14 @@ export function TrainingView({
               <ArrowLeft className="w-4 h-4" />
             </button>
             <span className="text-xs font-mono font-bold text-emerald-400 px-1.5">
-              {activeDay} / 30
+              {activeDay} / 365
             </span>
             <button
               onClick={() => {
-                const nextD = Math.min(30, activeDay + 1);
+                const nextD = Math.min(365, activeDay + 1);
                 setActiveDay(nextD);
-                onSelectDay(nextD);
               }}
-              disabled={activeDay >= 30}
+              disabled={activeDay >= 365}
               className="p-2 rounded-xl text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
             >
               <ArrowRight className="w-4 h-4" />
@@ -101,33 +141,119 @@ export function TrainingView({
           </div>
         </div>
 
-        {/* 30-Day Horizontal Timeline Ribbon */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none py-1">
-          {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
-            const isCurrent = d === currentDay;
-            const isSelected = d === activeDay;
+        {/* 12 Cycle Switcher */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pb-0.5">
+          {YEAR_365_CYCLES.map((c) => {
+            const isSel = selectedCycleNum === c.cycleNumber;
+            const isCur = activeCycle.cycleNumber === c.cycleNumber;
             return (
               <button
-                key={d}
+                key={c.cycleNumber}
                 onClick={() => {
-                  setActiveDay(d);
-                  onSelectDay(d);
+                  setSelectedCycleNum(c.cycleNumber);
+                  setActiveDay(c.startDay);
                 }}
-                className={`shrink-0 w-9 h-11 rounded-xl flex flex-col items-center justify-center font-mono text-xs font-bold transition-all ${
-                  isSelected
-                    ? 'bg-emerald-500 text-slate-950 shadow-lg scale-105'
-                    : isCurrent
-                    ? 'bg-slate-800 border-2 border-emerald-400 text-emerald-400'
-                    : 'bg-slate-900/90 border border-slate-800 text-slate-400 hover:border-slate-700'
+                className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                  isSel
+                    ? 'bg-emerald-500 text-slate-950 font-black'
+                    : isCur
+                    ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300'
+                    : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span className="text-[9px] uppercase font-sans">D</span>
-                <span>{d}</span>
+                C{c.cycleNumber} ({c.startDay}-{c.endDay}d)
               </button>
             );
           })}
         </div>
+
+        {/* Days in Selected Cycle */}
+        {(() => {
+          const currentCycleData = YEAR_365_CYCLES.find(c => c.cycleNumber === selectedCycleNum) || activeCycle;
+          return (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none py-1">
+              {Array.from(
+                { length: currentCycleData.endDay - currentCycleData.startDay + 1 },
+                (_, i) => currentCycleData.startDay + i
+              ).map((d) => {
+                const isCurrent = d === currentDay;
+                const isSelected = d === activeDay;
+                const isPast = d < currentDay;
+                const isFuture = d > currentDay;
+
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setActiveDay(d)}
+                    className={`shrink-0 w-9 h-11 rounded-xl flex flex-col items-center justify-center font-mono text-xs font-bold transition-all relative ${
+                      isSelected
+                        ? 'bg-emerald-500 text-slate-950 shadow-lg scale-105'
+                        : isCurrent
+                        ? 'bg-slate-800 border-2 border-emerald-400 text-emerald-400'
+                        : isPast
+                        ? 'bg-slate-900/90 border border-slate-800 text-emerald-400/80 hover:border-slate-700'
+                        : 'bg-slate-950/60 border border-slate-800/60 text-slate-500'
+                    }`}
+                  >
+                    <span className="text-[8px] uppercase font-sans">D</span>
+                    <span className="leading-tight">{d}</span>
+                    {isPast && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400" />}
+                    {isFuture && <Lock className="w-2 h-2 text-slate-600 absolute -top-0.5 -right-0.5" />}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
+
+      {/* Future Locked Alert Banner */}
+      {isFutureDay && (
+        <div className="p-4 rounded-3xl bg-amber-950/40 border border-amber-800/60 shadow-xl space-y-2 text-amber-200">
+          <div className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-amber-400 shrink-0" />
+            <h4 className="text-sm font-bold text-amber-300">
+              {language === 'bn' ? `দিন #${activeDay} লক করা আছে` : `Day #${activeDay} is Locked`}
+            </h4>
+          </div>
+          <p className="text-xs text-amber-200/80 leading-relaxed">
+            {language === 'bn'
+              ? `নিয়ম অনুযায়ী সামনের দিনের কাজ আগে থেকে সম্পন্ন করা যায় না। অনুগ্রহ করে বর্তমান দিনের (দিন #${currentDay}) সব সেশন সম্পন্ন করুন।`
+              : `You cannot complete future days ahead of time. Please complete all 4 sessions for current day (Day #${currentDay}) first.`}
+          </p>
+          <button
+            onClick={() => setActiveDay(currentDay)}
+            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all"
+          >
+            {language === 'bn' ? `আজকের দিন #${currentDay} তে ফিরে যান` : `Return to Today (Day #${currentDay})`}
+          </button>
+        </div>
+      )}
+
+      {/* Today Completed - Advance to Next Day Celebration */}
+      {isTodayAllDone && onAdvanceNextDay && (
+        <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 border border-emerald-400/60 shadow-xl space-y-2">
+          <div className="flex items-center gap-2 text-emerald-300">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <h4 className="text-sm font-bold">
+              {language === 'bn' ? `🎉 দারুণ! আজকের দিন #${currentDay} এর সব সেশন সম্পন্ন!` : `🎉 Awesome! Day #${currentDay} Completed!`}
+            </h4>
+          </div>
+          <p className="text-xs text-emerald-200/80">
+            {language === 'bn'
+              ? `আপনি সফলভাবে আজকের সমস্ত কাজ শেষ করেছেন। পরবর্তী দিন (দিন #${currentDay + 1}) শুরু করতে নিচের বাটনে চাপুন।`
+              : `All tasks for today are done. Advance to the next day when ready.`}
+          </p>
+          <button
+            onClick={onAdvanceNextDay}
+            className="w-full py-2.5 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{language === 'bn' ? `দিন #${currentDay + 1} শুরু করুন (Next Day)` : `Advance to Day #${currentDay + 1}`}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Quick Scientific Reading Lab & Daily Report Action Bar */}
       <div className="grid grid-cols-2 gap-2.5">
@@ -170,7 +296,7 @@ export function TrainingView({
       <div className="p-4 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 shadow-xl space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-            {language === 'bn' ? 'আজকের মূল ফোকাস' : "Today's Theme & Focus"}
+            {language === 'bn' ? 'এই দিনের মূল ফোকাস' : "Day's Theme & Focus"}
           </span>
           <span className="text-[11px] font-mono text-slate-400">Stage {curriculum.treeStage}/6</span>
         </div>
@@ -189,8 +315,11 @@ export function TrainingView({
           session={curriculum.sessions.morning}
           language={language}
           customTime={voiceState.scheduleTimes?.morning}
-          isDone={activeDay === currentDay && !!dayLog?.sessionsCompleted?.morning}
-          onStart={() => onOpenSession(curriculum.sessions.morning)}
+          isDone={isPastDay || (isCurrentDay && !!dayLog?.sessionsCompleted?.morning)}
+          isLocked={isFutureDay}
+          onStart={() => {
+            if (!isFutureDay) onOpenSession(curriculum.sessions.morning);
+          }}
         />
 
         {/* Afternoon Session */}
@@ -198,8 +327,11 @@ export function TrainingView({
           session={curriculum.sessions.afternoon}
           language={language}
           customTime={voiceState.scheduleTimes?.afternoon}
-          isDone={activeDay === currentDay && !!dayLog?.sessionsCompleted?.afternoon}
-          onStart={() => onOpenSession(curriculum.sessions.afternoon)}
+          isDone={isPastDay || (isCurrentDay && !!dayLog?.sessionsCompleted?.afternoon)}
+          isLocked={isFutureDay}
+          onStart={() => {
+            if (!isFutureDay) onOpenSession(curriculum.sessions.afternoon);
+          }}
         />
 
         {/* Evening RJ Session */}
@@ -207,8 +339,11 @@ export function TrainingView({
           session={curriculum.sessions.evening}
           language={language}
           customTime={voiceState.scheduleTimes?.evening}
-          isDone={activeDay === currentDay && !!dayLog?.sessionsCompleted?.evening}
-          onStart={() => onOpenSession(curriculum.sessions.evening)}
+          isDone={isPastDay || (isCurrentDay && !!dayLog?.sessionsCompleted?.evening)}
+          isLocked={isFutureDay}
+          onStart={() => {
+            if (!isFutureDay) onOpenSession(curriculum.sessions.evening);
+          }}
         />
 
         {/* Night Recovery Session */}
@@ -216,8 +351,11 @@ export function TrainingView({
           session={curriculum.sessions.night}
           language={language}
           customTime={voiceState.scheduleTimes?.night}
-          isDone={activeDay === currentDay && !!dayLog?.sessionsCompleted?.night}
-          onStart={() => onOpenSession(curriculum.sessions.night)}
+          isDone={isPastDay || (isCurrentDay && !!dayLog?.sessionsCompleted?.night)}
+          isLocked={isFutureDay}
+          onStart={() => {
+            if (!isFutureDay) onOpenSession(curriculum.sessions.night);
+          }}
         />
       </div>
 
@@ -239,18 +377,21 @@ interface SessionCardProps {
   language: Language;
   customTime?: string;
   isDone?: boolean;
+  isLocked?: boolean;
   onStart: () => void;
 }
 
-function SessionCard({ session, language, customTime, isDone, onStart }: SessionCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
+function SessionCard({ session, language, customTime, isDone, isLocked, onStart }: SessionCardProps) {
   return (
-    <div className="rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl overflow-hidden transition-all hover:border-slate-700">
+    <div className={`rounded-3xl bg-slate-900/90 border shadow-xl overflow-hidden transition-all ${
+      isLocked ? 'border-slate-800/60 opacity-60' : 'border-slate-800 hover:border-slate-700'
+    }`}>
       {/* Session Header */}
       <div className="p-4 sm:p-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-emerald-500/15 text-emerald-400 shrink-0">
+          <div className={`p-3 rounded-2xl shrink-0 ${
+            isLocked ? 'bg-slate-800 text-slate-500' : 'bg-emerald-500/15 text-emerald-400'
+          }`}>
             {session.id === 'morning' && <Sun className="w-5 h-5" />}
             {session.id === 'afternoon' && <Sparkles className="w-5 h-5" />}
             {session.id === 'evening' && <Mic className="w-5 h-5" />}
@@ -267,6 +408,12 @@ function SessionCard({ session, language, customTime, isDone, onStart }: Session
                   {language === 'bn' ? 'সম্পন্ন' : 'Done'}
                 </span>
               )}
+              {isLocked && (
+                <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 text-[10px] font-bold flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  {language === 'bn' ? 'লক করা' : 'Locked'}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
               <span className="flex items-center gap-1 font-mono">
@@ -280,17 +427,24 @@ function SessionCard({ session, language, customTime, isDone, onStart }: Session
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={onStart}
-            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>{language === 'bn' ? 'শুরু করুন' : 'Start'}</span>
-          </button>
+          {isLocked ? (
+            <div className="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-500 font-bold text-xs flex items-center gap-1 cursor-not-allowed">
+              <Lock className="w-3.5 h-3.5" />
+              <span>{language === 'bn' ? 'লক' : 'Locked'}</span>
+            </div>
+          ) : (
+            <button
+              onClick={onStart}
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>{language === 'bn' ? 'শুরু করুন' : 'Start'}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Exercises Step List Toggle */}
+      {/* Exercises Step List */}
       <div className="border-t border-slate-800/80 bg-slate-950/50 p-4 space-y-2.5">
         <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider block">
           {language === 'bn' ? 'এই সেশনের ধাপসমূহ:' : 'Session Steps:'}

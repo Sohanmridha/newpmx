@@ -288,58 +288,196 @@ export const NIGHT_RECOVERY_STEPS: ExerciseStep[] = [
   }
 ];
 
-// Generate dynamic curriculum for all 30 days
-export function getCurriculumForDay(day: number): DayCurriculum {
-  const d = Math.max(1, Math.min(30, Math.round(day)));
+export interface YearCycleInfo {
+  cycleNumber: number; // 1 to 12
+  startDay: number; // 1, 31, 61, ...
+  endDay: number; // 30, 60, 90, ...
+  titleBn: string;
+  titleEn: string;
+  themeBn: string;
+  themeEn: string;
+  focusBn: string;
+  focusEn: string;
+}
 
-  // Tree stage mapping
+export const YEAR_365_CYCLES: YearCycleInfo[] = [
+  {
+    cycleNumber: 1,
+    startDay: 1,
+    endDay: 30,
+    titleBn: 'সাইকেল ১: ডায়াফ্রাম্যাটিক ভিত্তি ও ভোকাল জাগরণ',
+    titleEn: 'Cycle 1: Diaphragmatic Foundations & Vocal Awakening',
+    themeBn: 'শ্বাস নিয়ন্ত্রণ ও ল্যারিংক্স শিথিলতা',
+    themeEn: 'Breath Control & Larynx Relaxation',
+    focusBn: 'ল্যারিংক্স রিলাক্সেশন, সাবগ্লটিক প্রেসার ব্যালেন্স এবং মাস্ক রেজোন্যান্স সূচনা।',
+    focusEn: 'Larynx relaxation, lower breath support and mask resonance initiation.'
+  },
+  {
+    cycleNumber: 2,
+    startDay: 31,
+    endDay: 60,
+    titleBn: 'সাইকেল ২: বক্ষ রেজোন্যান্স ও ব্যারিটোন গভীরতা',
+    titleEn: 'Cycle 2: Chest Resonance & Baritone Vocal Depth',
+    themeBn: 'বুকের কম্পন ও ব্যারিটোন সাউন্ড বিস্তার',
+    themeEn: 'Chest Cavity & Baritone Sound Expansion',
+    focusBn: 'বুকের কম্পন বিস্তার এবং ভারী ও উষ্ণ স্বর প্রক্ষেপণ।',
+    focusEn: 'Chest vibration expansion and warm, grounded projection.'
+  },
+  {
+    cycleNumber: 3,
+    startDay: 61,
+    endDay: 90,
+    titleBn: 'সাইকেল ৩: ফেসিয়াল মাস্ক ও হারমোনিক ওভারটোন',
+    titleEn: 'Cycle 3: Facial Mask & Harmonic Overtones',
+    themeBn: 'মাস্ক রেজোন্যান্স ও ক্রিস্টাল স্পষ্টতা',
+    themeEn: 'Mask Resonance & Crystal Clarity',
+    focusBn: 'নাসাল ক্যাভিটি ও সাইনাস রেজোন্যান্সের মাধ্যমে শব্দ স্পষ্টীকরণ।',
+    focusEn: 'Nasal and sinus resonance amplification for crystal overtone clarity.'
+  },
+  {
+    cycleNumber: 4,
+    startDay: 91,
+    endDay: 120,
+    titleBn: 'সাইকেল ৪: আর্টিকুলেশন ও সাবলীল বাক্-দক্ষতা',
+    titleEn: 'Cycle 4: Phonetic Articulation & Speech Agility',
+    themeBn: 'জিহ্বা-ঠোঁটের গতি ও দ্রুত স্পষ্ট উচ্চারণ',
+    themeEn: 'Tongue Agility & Rapid Articulation',
+    focusBn: 'দ্রুত ও জটিল শব্দের নির্ভুল উচ্চারণ ও জিহ্বার চপলতা বৃদ্ধি।',
+    focusEn: 'Tongue dexterity and rapid consonant articulation precision.'
+  },
+  {
+    cycleNumber: 5,
+    startDay: 121,
+    endDay: 150,
+    titleBn: 'সাইকেল ৫: পিচ মডুলেশন ও ডায়নামিক রেঞ্জ',
+    titleEn: 'Cycle 5: Pitch Modulation & Dynamic Range',
+    themeBn: 'সুরের বৈচিত্র্য ও স্বরের গতিশীলতা',
+    themeEn: 'Melodic Inflection & Pitch Dynamics',
+    focusBn: 'স্বরের একঘেয়েমি দূর করে সুরের সাবলীল ওঠা-নামা ও রেঞ্জ নিয়ন্ত্রণ।',
+    focusEn: 'Eliminating vocal monotone and mastering melodic inflection.'
+  },
+  {
+    cycleNumber: 6,
+    startDay: 151,
+    endDay: 180,
+    titleBn: 'সাইকেল ৬: আরজে ও পডকাস্ট স্টোরিটেলিং',
+    titleEn: 'Cycle 6: RJ Storytelling & Emotional Delivery',
+    themeBn: 'আবেগীয় ডেলিভারি ও নাটকীয় মাইক্রো-পজ',
+    themeEn: 'Emotional Cadence & Dramatic Pausing',
+    focusBn: 'শ্রোতার হৃদয়ে পৌঁছানোর মতো অনুভূতিশীল কণ্ঠ ও নাটকীয় পজ।',
+    focusEn: 'Dramatic micro-pauses, emotional resonance and storytelling cadence.'
+  },
+  {
+    cycleNumber: 7,
+    startDay: 181,
+    endDay: 210,
+    titleBn: 'সাইকেল ৭: দীর্ঘস্থায়ী কণ্ঠ সহনশীলতা (Stamina)',
+    titleEn: 'Cycle 7: Vocal Stamina & Long-form Endurance',
+    themeBn: 'ক্লান্তিহীন দীর্ঘস্থায়ী কণ্ঠ সাধনা',
+    themeEn: 'Tireless Vocal Projection & Stamina',
+    focusBn: 'ঘণ্টার পর ঘণ্টা কথা বললেও গলায় ব্যথা বা ক্লান্তিহীন দীর্ঘস্থায়িত্ব।',
+    focusEn: 'Hours of effortless speaking without vocal fatigue or strain.'
+  },
+  {
+    cycleNumber: 8,
+    startDay: 211,
+    endDay: 240,
+    titleBn: 'সাইকেল ৮: স্টুডিও অ্যাকোস্টিক ও মাইক্রোফোন প্রিসিশন',
+    titleEn: 'Cycle 8: Studio Acoustics & Microphone Technique',
+    themeBn: 'মাইক্রোফোন নিয়ন্ত্রণ ও প্রক্সিমিটি ইফেক্ট',
+    themeEn: 'Proximity Effect & Studio Precision',
+    focusBn: 'প্রক্সিমিটি ইফেক্ট ও স্টুডিও গ্রেড মাইক্রোফোন নিয়ন্ত্রণ।',
+    focusEn: 'Proximity effect management and studio-grade audio delivery.'
+  },
+  {
+    cycleNumber: 9,
+    startDay: 241,
+    endDay: 270,
+    titleBn: 'সাইকেল ৯: পাবলিক স্পিকিং ও লিডারশিপ প্রজেকশন',
+    titleEn: 'Cycle 9: Public Speaking & Command Presence',
+    themeBn: 'কর্তৃত্বপূর্ণ ও আত্মবিশ্বাসী কণ্ঠের বিস্তার',
+    themeEn: 'Authoritative Presence & Room Projection',
+    focusBn: 'শত শত মানুষের সামনে আত্মবিশ্বাসী, প্রকম্পিত ও কর্তৃত্বপূর্ণ কণ্ঠ।',
+    focusEn: 'Commanding room presence, authoritative delivery and crowd resonance.'
+  },
+  {
+    cycleNumber: 10,
+    startDay: 271,
+    endDay: 300,
+    titleBn: 'সাইকেল ১০: মোটিভেশনাল ও ইনফ্লুয়েনশিয়াল পিচিং',
+    titleEn: 'Cycle 10: Persuasive Pitching & Narrative Rhythm',
+    themeBn: 'সম্মোহনী বাচনভঙ্গি ও শব্দের ওজন',
+    themeEn: 'Hypnotic Delivery & Vocal Gravitas',
+    focusBn: 'অন্যকে প্রভাবিত করার মতো আকর্ষণীয় ছন্দ ও শব্দের ওজন।',
+    focusEn: 'Hypnotic speaking rhythm and persuasive vocal gravitas.'
+  },
+  {
+    cycleNumber: 11,
+    startDay: 301,
+    endDay: 330,
+    titleBn: 'সাইকেল ১১: স্বতঃস্ফূর্ত সাবলীলতা ও ব্যক্তিত্ব বিকাশ',
+    titleEn: 'Cycle 11: Spontaneous Fluency & Executive Persona',
+    themeBn: 'তাৎক্ষণিক প্রাঞ্জলতা ও সম্মোহনী উপস্থিতি',
+    themeEn: 'Impromptu Eloquence & Executive Magnetism',
+    focusBn: 'যেকোনো মুহূর্তে তাৎক্ষণিক প্রাঞ্জল, সম্মোহনী ও নির্ভুল উপস্থাপনা।',
+    focusEn: 'Instant impromptu eloquence and charismatic communication.'
+  },
+  {
+    cycleNumber: 12,
+    startDay: 331,
+    endDay: 365,
+    titleBn: 'সাইকেল ১২: গ্র্যান্ড মাস্টার ভয়েস রূপান্তর ও পূর্ণতা',
+    titleEn: 'Cycle 12: Grand Master Voice Transformation',
+    themeBn: '৩৬৫ দিনের পূর্ণাঙ্গ সাধনার চূড়া',
+    themeEn: 'The Pinnacle of Lifelong Vocal Excellence',
+    focusBn: '৩৬৫ দিনের পূর্ণাঙ্গ সাধনার পর আজীবন স্থায়ী মাস্টার কণ্ঠের শ্রেষ্ঠত্ব।',
+    focusEn: 'The pinnacle of lifelong natural vocal excellence and resonance.'
+  }
+];
+
+export function getYearCycleForDay(day: number): YearCycleInfo {
+  const d = Math.max(1, Math.min(365, Math.round(day)));
+  return YEAR_365_CYCLES.find(c => d >= c.startDay && d <= c.endDay) || YEAR_365_CYCLES[0];
+}
+
+// Generate dynamic curriculum for all 365 days (12 Cycles of 30 days)
+export function getCurriculumForDay(day: number): DayCurriculum {
+  const d = Math.max(1, Math.min(365, Math.round(day)));
+  const cycle = getYearCycleForDay(d);
+  const dayInCycle = ((d - 1) % 30) + 1;
+
+  // Tree stage mapping based on overall progression
   let treeStage: 1 | 2 | 3 | 4 | 5 | 6 = 1;
   let stageNameBn = 'লেভেল ১: বীজ স্তর (Seed Stage)';
   let stageNameEn = 'Level 1: Seed Foundation';
-  if (d >= 30) {
+  
+  if (d >= 90) {
     treeStage = 6;
-    stageNameBn = 'লেভেল ৬: পূর্ণাঙ্গ রূপান্তর বৃক্ষ (Master Tree)';
-    stageNameEn = 'Level 6: Full Transformation Tree';
-  } else if (d >= 21) {
+    stageNameBn = `লেভেল ৬: পূর্ণাঙ্গ রূপান্তর বৃক্ষ (মাস্টার সাইকেল ${cycle.cycleNumber})`;
+    stageNameEn = `Level 6: Full Transformation Tree (Cycle ${cycle.cycleNumber})`;
+  } else if (d >= 60) {
     treeStage = 5;
-    stageNameBn = 'লেভেল ৫: সুদৃঢ় বৃক্ষ (Strong Resonant Tree)';
-    stageNameEn = 'Level 5: Strong Resonant Tree';
-  } else if (d >= 14) {
+    stageNameBn = `লেভেল ৫: সুদৃঢ় রেজোন্যান্ট বৃক্ষ (সাইকেল ${cycle.cycleNumber})`;
+    stageNameEn = `Level 5: Strong Resonant Tree (Cycle ${cycle.cycleNumber})`;
+  } else if (d >= 30) {
     treeStage = 4;
-    stageNameBn = 'লেভেল ৪: বর্ধনশীল বৃক্ষ (Growing Tree)';
-    stageNameEn = 'Level 4: Growing Tree';
-  } else if (d >= 7) {
+    stageNameBn = `লেভেল ৪: বর্ধনশীল বৃক্ষ (সাইকেল ${cycle.cycleNumber})`;
+    stageNameEn = `Level 4: Growing Resonant Tree (Cycle ${cycle.cycleNumber})`;
+  } else if (d >= 14) {
     treeStage = 3;
     stageNameBn = 'লেভেল ৩: তরুণ বৃক্ষ (Young Tree)';
     stageNameEn = 'Level 3: Young Tree';
-  } else if (d >= 3) {
+  } else if (d >= 7) {
     treeStage = 2;
     stageNameBn = 'লেভেল ২: অঙ্কুরোদগম (Sprout Stage)';
     stageNameEn = 'Level 2: Sprout Awakening';
   }
 
-  // Dynamic theme & focus
-  let themeBn = 'কণ্ঠের শিথিলতা ও প্রাথমিক শ্বাস নিয়ন্ত্রণ';
-  let themeEn = 'Vocal Relaxation & Diaphragmatic Breath';
-  let focusPointBn = 'কোনো জোর না দিয়ে পেটের পেশী ব্যবহার করে শ্বাস নেওয়া এবং গলা আরামদায়ক রাখা।';
-  let focusPointEn = 'Expand lower abdomen without throat constriction or chest tension.';
-
-  if (d > 20) {
-    themeBn = 'মাস্টার আরজে ডেলিভারি ও ডায়নামিক রেজোন্যান্স';
-    themeEn = 'Master RJ Broadcast Delivery & Rich Resonance';
-    focusPointBn = 'পজ কন্ট্রোল, গল্পের আবহ তৈরি এবং পূর্ণ আত্মবিশ্বাসী স্বর বিস্তার।';
-    focusPointEn = 'Pacing control, narrative pauses, and projecting full chest resonance.';
-  } else if (d > 10) {
-    themeBn = 'উচ্চারণের স্পষ্টতা ও পিচ কন্ট্রোল';
-    themeEn = 'Articulation Precision & Natural Pitch Glide';
-    focusPointBn = 'শব্দের শেষ বর্ণ স্পষ্ট উচ্চারণ এবং সুরের স্বাভাবিক ওঠা-নামা।';
-    focusPointEn = 'Crisp consonant endings and smooth, effortless pitch gliding.';
-  } else if (d > 3) {
-    themeBn = 'লিপ ট্রিল ও মাস্ক রেজোন্যান্স জাগরণ';
-    themeEn = 'Lip Trills & Mask Resonance Awakening';
-    focusPointBn = 'ঠোঁটের কম্পন এবং মুখের সামনের অংশে স্বরের প্রতিধ্বনি বাড়ানো।';
-    focusPointEn = 'Vocal fold decompression and facial mask acoustic projection.';
-  }
+  // Theme and Focus derived from Cycle and day position
+  const themeBn = `${cycle.titleBn} • দিন ${dayInCycle}/৩০ (${cycle.themeBn})`;
+  const themeEn = `${cycle.titleEn} • Day ${dayInCycle}/30 (${cycle.themeEn})`;
+  const focusPointBn = cycle.focusBn;
+  const focusPointEn = cycle.focusEn;
 
   // Pick script matching day or closest
   const slowScript = SLOW_READING_SCRIPTS.find(s => s.day === d) || SLOW_READING_SCRIPTS[d % SLOW_READING_SCRIPTS.length];

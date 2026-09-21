@@ -22,10 +22,11 @@ import {
   Heart,
   ShieldCheck,
   Printer,
-  Share2
+  Share2,
+  Lock
 } from 'lucide-react';
 import { VoiceState, DailyVoiceLog, Language } from '../types/voice';
-import { getCurriculumForDay } from '../data/voiceCurriculum';
+import { getCurriculumForDay, YEAR_365_CYCLES, getYearCycleForDay } from '../data/voiceCurriculum';
 import { D3TimeDonutChart } from './D3TimeDonutChart';
 
 interface DailyReportViewerModalProps {
@@ -33,7 +34,7 @@ interface DailyReportViewerModalProps {
   voiceState: VoiceState;
   language: Language;
   onClose: () => void;
-  onSelectDayToTrain?: (day: number) => void;
+  onStartTodayTraining?: () => void;
 }
 
 export function DailyReportViewerModal({
@@ -41,25 +42,32 @@ export function DailyReportViewerModal({
   voiceState,
   language,
   onClose,
-  onSelectDayToTrain
+  onStartTodayTraining
 }: DailyReportViewerModalProps) {
-  const [activeDay, setActiveDay] = useState<number>(initialDay);
+  const [activeDay, setActiveDay] = useState<number>(Math.max(1, Math.min(365, initialDay)));
   const [activeTab, setActiveTab] = useState<'time_breakdown' | 'exercises' | 'voice_improvement'>('time_breakdown');
 
-  // Retrieve or compute realistic logs for the selected day
+  const activeCycle = getYearCycleForDay(activeDay);
+  const [selectedCycleNum, setSelectedCycleNum] = useState<number>(activeCycle.cycleNumber);
+
+  // Retrieve exact logged data for the selected day
   const dayLog: DailyVoiceLog | undefined = 
     voiceState.dayLogsByDay?.[activeDay] || 
     Object.values(voiceState.todayLogs || {}).find(l => l.dayNumber === activeDay);
 
   const curriculum = getCurriculumForDay(activeDay);
 
-  // Time calculations (default fallback based on completed exercises if not logged explicitly)
+  const isPastDay = activeDay < voiceState.currentDay;
+  const isCurrentDay = activeDay === voiceState.currentDay;
+  const isFutureDay = activeDay > voiceState.currentDay;
+
+  // Real recorded time spent (Strictly from recorded logs)
   const timeBreakdown = dayLog?.timeBreakdown || {
-    breathSeconds: (dayLog?.breathCompleted ? 8 * 60 : 0) + (activeDay <= voiceState.currentDay ? 240 : 0),
-    voiceSeconds: (dayLog?.voiceCompleted ? 14 * 60 : 0) + (activeDay <= voiceState.currentDay ? 420 : 0),
-    bodySeconds: (dayLog?.bodyCompleted ? 6 * 60 : 0) + (activeDay <= voiceState.currentDay ? 180 : 0),
-    readingSeconds: (dayLog?.sessionsCompleted?.afternoon ? 10 * 60 : 0) + (activeDay <= voiceState.currentDay ? 300 : 0),
-    recoverySeconds: (dayLog?.recoveryCompleted ? 8 * 60 : 0) + (activeDay <= voiceState.currentDay ? 240 : 0),
+    breathSeconds: 0,
+    voiceSeconds: 0,
+    bodySeconds: 0,
+    readingSeconds: 0,
+    recoverySeconds: 0,
     totalSeconds: 0
   };
 
@@ -75,7 +83,7 @@ export function DailyReportViewerModal({
 
   // Baseline Comparison (Day 1 vs Day N)
   const baselineScore = voiceState.baselineVoiceScore?.voiceScore || 68;
-  const currentDayScore = dayLog?.voiceScore || Math.min(96, Math.round(baselineScore + (activeDay - 1) * 1.05));
+  const currentDayScore = dayLog?.voiceScore || (isPastDay || isCurrentDay ? Math.min(96, Math.round(baselineScore + (activeDay - 1) * 1.05)) : baselineScore);
   const improvementDelta = Math.max(0, currentDayScore - baselineScore);
 
   // Audio Recordings on this Day
@@ -103,11 +111,29 @@ export function DailyReportViewerModal({
               <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-                {language === 'bn' ? 'দৈনিক বিস্তারিত পারফরম্যান্স রিপোর্ট' : 'Daily Practice & Improvement Report'}
-              </span>
-              <h2 className="text-base font-extrabold text-white">
-                {language === 'bn' ? `দিন #${activeDay}: ${curriculum.themeBn}` : `Day #${activeDay}: ${curriculum.themeEn}`}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                  {language === 'bn' ? `সাইকেল ${activeCycle.cycleNumber} • দিন #${activeDay}` : `Cycle ${activeCycle.cycleNumber} • Day #${activeDay}`}
+                </span>
+                {isPastDay && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                    {language === 'bn' ? 'সম্পন্ন' : 'Completed'}
+                  </span>
+                )}
+                {isCurrentDay && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950 font-black animate-pulse">
+                    {language === 'bn' ? 'আজকের দিন' : 'Today'}
+                  </span>
+                )}
+                {isFutureDay && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" />
+                    {language === 'bn' ? 'লক করা' : 'Locked'}
+                  </span>
+                )}
+              </div>
+              <h2 className="text-base font-extrabold text-white truncate max-w-[280px] sm:max-w-md">
+                {language === 'bn' ? curriculum.themeBn : curriculum.themeEn}
               </h2>
             </div>
           </div>
@@ -130,47 +156,70 @@ export function DailyReportViewerModal({
           </div>
         </div>
 
-        {/* 30-Day Selector Carousel */}
-        <div className="py-2.5 border-b border-slate-800/60">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5 px-1">
-            <span className="font-semibold">
-              {language === 'bn' ? 'দিন নির্বাচন করুন (১-৩০):' : 'Select Training Day (1-30):'}
-            </span>
-            <span className="font-mono text-emerald-400 font-bold">
-              {language === 'bn' ? `বর্তমান দিন: ${voiceState.currentDay}` : `Current Day: ${voiceState.currentDay}`}
-            </span>
+        {/* 12-Cycle Navigation Bar + 30-Day Day Selector */}
+        <div className="py-2.5 border-b border-slate-800/60 space-y-2">
+          {/* Cycle Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pb-0.5">
+            {YEAR_365_CYCLES.map((c) => (
+              <button
+                key={c.cycleNumber}
+                onClick={() => {
+                  setSelectedCycleNum(c.cycleNumber);
+                  setActiveDay(c.startDay);
+                }}
+                className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                  selectedCycleNum === c.cycleNumber
+                    ? 'bg-emerald-500 text-slate-950 font-black'
+                    : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                C{c.cycleNumber} ({c.startDay}-{c.endDay}d)
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-            {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
-              const isSelected = d === activeDay;
-              const isCurrent = d === voiceState.currentDay;
-              const isPast = d < voiceState.currentDay;
-              const isFuture = d > voiceState.currentDay;
+          {/* Days inside Selected Cycle */}
+          {(() => {
+            const currentCycleData = YEAR_365_CYCLES.find(c => c.cycleNumber === selectedCycleNum) || activeCycle;
+            return (
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
+                {Array.from(
+                  { length: currentCycleData.endDay - currentCycleData.startDay + 1 },
+                  (_, i) => currentCycleData.startDay + i
+                ).map((d) => {
+                  const isSelected = d === activeDay;
+                  const isCurrent = d === voiceState.currentDay;
+                  const isPast = d < voiceState.currentDay;
+                  const isFuture = d > voiceState.currentDay;
 
-              return (
-                <button
-                  key={d}
-                  onClick={() => setActiveDay(d)}
-                  className={`shrink-0 w-10 h-10 rounded-2xl flex flex-col items-center justify-center text-xs font-bold transition-all relative ${
-                    isSelected
-                      ? 'bg-emerald-500 text-slate-950 shadow-lg ring-2 ring-emerald-400 scale-105'
-                      : isCurrent
-                      ? 'bg-slate-800 border-2 border-emerald-400 text-emerald-300'
-                      : isPast
-                      ? 'bg-slate-950 border border-slate-800 text-slate-200 hover:bg-slate-800'
-                      : 'bg-slate-950/60 border border-slate-800/60 text-slate-500'
-                  }`}
-                >
-                  <span className="text-[9px] uppercase font-mono">D</span>
-                  <span className="text-xs font-black font-mono leading-none">{d}</span>
-                  {isPast && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-teal-400 border border-slate-950" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => setActiveDay(d)}
+                      className={`shrink-0 w-9 h-9 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all relative ${
+                        isSelected
+                          ? 'bg-emerald-500 text-slate-950 shadow-lg ring-2 ring-emerald-400 scale-105'
+                          : isCurrent
+                          ? 'bg-slate-800 border-2 border-emerald-400 text-emerald-300'
+                          : isPast
+                          ? 'bg-slate-950 border border-slate-800 text-emerald-400 hover:bg-slate-800'
+                          : 'bg-slate-950/60 border border-slate-800/60 text-slate-500'
+                      }`}
+                    >
+                      <span className="text-[8px] uppercase font-mono">D</span>
+                      <span className="text-xs font-black font-mono leading-none">{d}</span>
+                      {isPast && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-slate-950" />
+                      )}
+                      {isFuture && (
+                        <Lock className="w-2 h-2 text-slate-600 absolute -top-0.5 -right-0.5" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Tab Switcher */}
@@ -208,7 +257,7 @@ export function DailyReportViewerModal({
             }`}
           >
             <Activity className="w-3.5 h-3.5" />
-            <span>{language === 'bn' ? 'অনুশীলনের তালিকা' : 'Exercise Log'}</span>
+            <span>{language === 'bn' ? 'কারিকুলাম ও স্টেটাস' : 'Curriculum & Status'}</span>
           </button>
         </div>
 
@@ -568,8 +617,8 @@ export function DailyReportViewerModal({
             </button>
 
             <button
-              onClick={() => setActiveDay((prev) => Math.min(30, prev + 1))}
-              disabled={activeDay >= 30}
+              onClick={() => setActiveDay((prev) => Math.min(365, prev + 1))}
+              disabled={activeDay >= 365}
               className="px-3 py-1.5 rounded-xl bg-slate-800/70 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-300 flex items-center gap-1"
             >
               <span>{language === 'bn' ? 'পরবর্তী দিন' : 'Next Day'}</span>
@@ -577,17 +626,30 @@ export function DailyReportViewerModal({
             </button>
           </div>
 
-          {onSelectDayToTrain && (
-            <button
-              onClick={() => {
-                onSelectDayToTrain(activeDay);
-                onClose();
-              }}
-              className="px-4 py-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md"
-            >
-              {language === 'bn' ? `দিন #${activeDay} প্র্যাকটিস করুন` : `Train Day #${activeDay}`}
-            </button>
-          )}
+          <div>
+            {isCurrentDay ? (
+              <button
+                onClick={() => {
+                  onStartTodayTraining?.();
+                  onClose();
+                }}
+                className="px-4 py-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{language === 'bn' ? `দিন #${activeDay} আজকের সেশন শুরু করুন` : `Start Today's Session #${activeDay}`}</span>
+              </button>
+            ) : isPastDay ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{language === 'bn' ? `দিন #${activeDay} সম্পন্ন` : `Day #${activeDay} Completed`}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-400 text-xs font-bold">
+                <Lock className="w-3.5 h-3.5 text-slate-500" />
+                <span>{language === 'bn' ? `লক করা (দিন #${voiceState.currentDay} শেষ করুন)` : `Locked (Finish Day #${voiceState.currentDay})`}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

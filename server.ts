@@ -326,6 +326,85 @@ Keep your response motivating, concise, professional, and practical. Current Day
     }
   });
 
+  // API Route - EnglishCare Honours 2nd Year AI Study Co-pilot
+  app.post("/api/ai/english-copilot", async (req, res) => {
+    try {
+      const { 
+        studentName = "সোহান", 
+        userMessage = "", 
+        currentCoverage = 35, 
+        targetGoal = "aplus_target",
+        history = []
+      } = req.body;
+      const ai = getGeminiClient();
+
+      const systemInstruction = `You are "Coach Sohan Mridha & MridhaX AI", the Chief Executive Assistant, Study Companion, and All-in-one Co-pilot for National University Honours 2nd Year Non-Credit Compulsory English (Subject Code: 221109).
+Persona: Friendly, highly intelligent, encouraging, inspiring, and professional.
+Tone: Warm Bengali/English, motivating, and academically precise.
+
+Key Academic Principles (কঠোরভাবে পালনীয়):
+1. গণিত সমাধান (Mathematics): কোনো গণিত সমাধানের ক্ষেত্রে বইয়ের মতো ধাপে ধাপে (Step-by-Step) নির্ভুল ব্যাখ্যা দিবে। ফাইনাল উত্তরের পূর্বে লজিক ও হিসাব চেক করবে।
+2. ইংরেজি সিলেবাস (Grammar, Vocabulary, Writing, Unseen Comprehension):
+   - Right Form of Verbs (23 rules), Wh-Questions (25 rules), Sentence Correction, Articles, Punctuation, Rearrange, Changing Words, Translations.
+   - Writing shortcuts (Poster 6-box, Notice official letterhead, Paragraph topic sentence & vocabulary, Formal Job Application with CV).
+   - Unseen Passage: Wh questions, word meaning sentences, main idea/supporting ideas table, summary formula.
+3. Personal Progress Context: Student ${studentName} has covered ${currentCoverage}% of the syllabus with target: ${targetGoal === 'aplus_target' ? 'Target A+ (80+ marks)' : 'Pass in Exam (40+ marks)'}.
+Always encourage maintaining a dedicated study notebook (খাতা) for writing down rules by hand, and studying at least 90 minutes daily.
+4. Output cleanly in Markdown format with bold highlights.`;
+
+      const prompt = userMessage || `Analyze my study data: I have covered ${currentCoverage}% syllabus. Give me personalized strategic advice for today's English study session, what to practice in Right Form of Verbs, and daily study advice.`;
+
+      const contents: any[] = [];
+      if (Array.isArray(history) && history.length > 0) {
+        history.slice(-6).forEach(h => {
+          contents.push({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] });
+        });
+      }
+      contents.push({ role: 'user', parts: [{ text: prompt }] });
+
+      const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
+      let copilotResponse = null;
+
+      for (const modelName of modelsToTry) {
+        try {
+          const resp = await ai.models.generateContent({
+            model: modelName,
+            contents: contents,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.7,
+            }
+          });
+          if (resp && resp.text) {
+            copilotResponse = resp.text;
+            break;
+          }
+        } catch (e: any) {
+          console.warn(`English Copilot AI warning with ${modelName}:`, e.message);
+        }
+      }
+
+      if (!copilotResponse) {
+        copilotResponse = `প্রিয় ${studentName}, আমি তোমার স্টাডি ডেটা পর্যবেক্ষণ করেছি। তুমি এখন পর্যন্ত সিলেবাসের **${currentCoverage}%** কভার করেছ।
+
+📌 **আজকের স্পেশাল অ্যাকশন প্ল্যান:**
+1. **Right Form of Verbs**: রুলস ২১ থেকে ২৩ (Passive voice এবং Modal Auxiliaries) মনোযোগ দিয়ে রিভিশন দাও এবং কুইজ সম্পন্ন করো।
+2. **খাতা নোটের অভ্যাস**: পড়ার সময় সবসময় একটি পরিষ্কার স্টাডি খাতা সাথে রাখবে এবং শর্টকাট সূত্রগুলো নিজের হাতে লিখবে।
+3. **প্রতিদিন ৯০ মিনিট**: ভোকাবুলারি অ্যারেনায় ১০টি শব্দ ফ্ল্যাশ কার্ডে সোয়াইপ করো এবং একটি পোস্টার বা নোটিশ প্র্যাকটিস করো।
+
+তুমি নিশ্চিতভাবেই এ+ অর্জন করবে, চালিয়ে যাও!`;
+      }
+
+      return res.json({ text: copilotResponse });
+    } catch (err: any) {
+      console.error("English Copilot API Error:", err);
+      const { studentName = "সোহান", currentCoverage = 35 } = req.body || {};
+      return res.json({
+        text: `প্রিয় ${studentName}, তুমি চমৎকারভাবে এগিয়ে চলেছ (সিলেবাস কভারেজ: **${currentCoverage}%**)। আজ গ্রামারের শর্টকাট রুলস রিভিশন দাও এবং প্রতিদিনের ৯০ মিনিটের টার্গেট পূরণ করো!`
+      });
+    }
+  });
+
   // API Route - AI Voice & Speech Analysis
   app.post("/api/ai/voice-analysis", async (req, res) => {
     try {
@@ -806,6 +885,60 @@ Always end your message with this exact phrase in a separate paragraph at the ve
       }
 
       const fallbackText = generateOfflineFallbackResponse(lastUserMsg, language || "bn");
+      return res.json({ text: fallbackText });
+    }
+  });
+
+  // API Route - EnglishCare NU Honours 2nd Year Co-Pilot
+  app.post("/api/ai/english-copilot", async (req, res) => {
+    try {
+      const { messages, studentName, targetGoal, todayStudyMinutes, syllabusCoveragePercent, language = "bn" } = req.body;
+      const ai = getGeminiClient();
+
+      const systemInstruction = `You are "MridhaX AI" (PIEA) — Chief Executive Assistant, Personal Intelligent Executive Assistant, and All-in-One Co-pilot for "EnglishCare: National University Honours 2nd Year Non-Credit Compulsory English (Subject Code: 221109)".
+
+Student Context:
+- Student Name: ${studentName || "Honours Student"}
+- Goal: ${targetGoal === 'aplus_target' ? 'A+ Target (80+ Marks with Distinction)' : 'Pass Assurance Target (40-60 Marks)'}
+- Today's Study Time: ${todayStudyMinutes || 0} minutes (Daily Target: 90 minutes)
+- Overall Syllabus Coverage: ${syllabusCoveragePercent || 0}%
+
+Core Identity & Strict Policies (কঠোরভাবে পালনীয়):
+1. Role: Chief Executive Assistant, Study Companion & Coach.
+2. Tone: Friendly, Intelligent, Professional, and Inspiring.
+3. Educational Support:
+   - Compulsory English Syllabus (NU 221109): Part A (Unseen Passage - 20 Marks), Part B (Grammar - 45 Marks: Right Form of Verbs, Wh-Questions, Correction, Articles, Rearrange, Punctuation, Changing Words, Translation), Part C (Writing - 35 Marks: Poster 6-box format, Notice board, Application & CV, Paragraph, Letter, Advertisement).
+   - গণিত (Mathematics): কোনো গণিত সমাধান করার সময় বইয়ের মতো ধাপে ধাপে (Step-by-Step) ব্যাখ্যা করতে হবে। নির্ভুলতার জন্য ফাইনাল আউটপুট দেওয়ার আগে লজিক ও হিসাব চেক করে নিতে হবে।
+   - রোডম্যাপ ও পিডিএফ (Roadmap & PDF): ইউজারের চাহিদামতো যেকোনো বিষয়ের ওপর বিস্তারিত রোডম্যাপ তৈরি করবে এবং সেটি ডাউনলোডযোগ্য পিডিএফ ফরমেটে সাজানোর জন্য সুন্দর Markdown স্ট্রাকচার প্রদান করবে।
+4. MridhaX স্টাইল UI কন্ট্রোল:
+   - একটি মডুলার অ্যাপ ইন্টারফেসে কাজ করার আচরণ করবে।
+   - ইউজার কোনো ফাংশন কাস্টমাইজ বা রিমুভ করতে বললে, তাৎক্ষণিক সেই নির্দিষ্ট ইন্টারফেস এলিমেন্টটি টেক্সট-ভিত্তিক আকারে সামনে নিয়ে আসবে।
+   - সেখানে 'Add', 'Remove', বা 'Customize' অপশনগুলো হাইলাইট করবে। ইউজার নিশ্চিত করার পরেই কার্যকর করবে।
+5. মাল্টিমিডিয়া নীতিমালা (Strict Multimedia Control):
+   - কোনো অনুরোধ ছাড়া নিজ থেকে কোনো ছবি তৈরি করা সম্পূর্ণ নিষিদ্ধ।
+   - ইউজার কোনো কিছু লিখতে বললে শুধুমাত্র টেক্সট আউটপুট দেবে।
+   - ছবি তৈরির জন্য ইউজার যখনই নির্দিষ্ট 'Image Generation Mode' ফাংশনে ক্লিক করবে, তখনই কেবল ছবি তৈরি করবে।
+6. ফন্ট ও ডিজাইন নীতিমালা:
+   - ফন্টে কালার কোড বা অতিরিক্ত ফরম্যাটিং হিজিবিজি করা যাবে না। পরিষ্কার, মার্জিত ও প্রফেশনাল টেক্সট দিবে।
+7. Signature:
+   - বার্তার শেষে আলাদা প্যারাগ্রাফে যুক্ত করবে: "\\n\\nআমি তোমার বন্ধু MridhaX"`;
+
+      const safeMessages = Array.isArray(messages) ? messages : [];
+      const finalContents = safeMessages.map((m: any) => ({
+        role: m.role === 'model' ? 'model' : 'user',
+        parts: Array.isArray(m.parts) ? m.parts.map((p: any) => ({ text: p.text || "" })) : [{ text: m.text || m.content || "" }]
+      }));
+
+      if (finalContents.length === 0) {
+        finalContents.push({ role: 'user', parts: [{ text: "Hello MridhaX AI" }] });
+      }
+
+      const response = await generateContentWithRetryAndFallback(ai, finalContents, systemInstruction);
+      return res.json({ text: response.text });
+    } catch (err: any) {
+      console.error("[EnglishCare AI Error]:", err);
+      const studentName = req.body?.studentName || "Honours Student";
+      const fallbackText = `**[MridhaX AI স্টাডি অ্যাসিস্ট্যান্ট - অফলাইন মোড]**\n\nহ্যালো ${studentName}! আমি MridhaX AI, তোমার চিফ এক্সিকিউটিভ অ্যাসিস্ট্যান্ট ও স্টাডি কো-পাইলট।\n\nজাতীয় বিশ্ববিদ্যালয় অনার্স ২য় বর্ষের নন-ক্রেডিট কম্পালসরি ইংলিশ (২২১১০৯) পরীক্ষায় পাস বা A+ পাওয়ার জন্য আমাদের ৩টি প্রধান নিয়ম অনুসরণ করতে হবে:\n\n1. **Grammar (৪৫ মার্ক)**: Right Form of Verbs (বিশেষ করে 'high time', 'lest', 'as if', 'passive' এর নিয়মগুলো), Wh-questions (Tense ও Person অনুযায়ী do/does/did এর ব্যবহার), এবং Rearrange এ নিয়মিত ফুল মার্ক অর্জন করা সবচেয়ে সহজ।\n2. **Writing (৩৫ মার্ক)**: পোস্টার লেখার সময় ৬-বক্স ফরম্যাট (স্লোগান, হেডলাইন, বুলেট পয়েন্ট ও প্রচারিত) মেনে চললে ৪ এ ৪ পাওয়া যায়। নোটিশ বোর্ডে কলেজের নাম, স্মারক নং ও তারিখ সঠিকভাবে দিতে হবে।\n3. **Unseen Passage (২০ মার্ক)**: Wh-প্রশ্নের উত্তর প্যাসেজ থেকে গুছিয়ে লেখা এবং ৩ ভাগের ১ ভাগ দৈর্ঘ্যে নিজস্ব ভাষায় সামারি লেখা।\n\nপ্রতিদিন কমপক্ষে ৯০ মিনিট সময় নিয়ে একটি করে গ্রামার রুল ও একটি রাইটিং টপিক খাতায় লিখবে। কোনো প্রশ্নে অসুবিধা হলে আমাকে জানাও!\n\nআমি তোমার বন্ধু MridhaX`;
       return res.json({ text: fallbackText });
     }
   });

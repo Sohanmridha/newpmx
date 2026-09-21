@@ -1,565 +1,349 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { VoiceState, SessionPlan, VoiceAnalysisResult, Language } from './types/voice';
-import { getCurriculumForDay } from './data/voiceCurriculum';
-import { VOICE_BADGES } from './data/voiceBadges';
-import { SkyEnvironment } from './components/SkyEnvironment';
-import { HomeDashboard } from './components/HomeDashboard';
-import { TrainingView } from './components/TrainingView';
-import { VoiceStudio } from './components/VoiceStudio';
-import { ProgressDashboard } from './components/ProgressDashboard';
-import { ProfileSettings } from './components/ProfileSettings';
-import { BottomNav, TabType } from './components/BottomNav';
-import { GuidedExerciseModal } from './components/GuidedExerciseModal';
-import { SleepTrackerModal } from './components/SleepTrackerModal';
-import { BodyWellnessModal } from './components/BodyWellnessModal';
-import { TreeInfoModal } from './components/TreeInfoModal';
-import { DailyReportViewerModal } from './components/DailyReportViewerModal';
-import { ScientificReadingModal } from './components/ScientificReadingModal';
-import { TaskTimeBreakdown, ExerciseRecord } from './types/voice';
+import confetti from 'canvas-confetti';
+import { Navbar } from './components/english/Navbar';
+import { DashboardView } from './components/english/DashboardView';
+import { GrammarMasterView } from './components/english/GrammarMasterView';
+import { VocabularyArenaView } from './components/english/VocabularyArenaView';
+import { WritingHubView } from './components/english/WritingHubView';
+import { UnseenPassageView } from './components/english/UnseenPassageView';
+import { MockTestView } from './components/english/MockTestView';
+import { CopilotView } from './components/english/CopilotView';
+import { BadgesModal } from './components/english/BadgesModal';
+import { MainTab, UserProgressState, TargetGoal } from './types/englishCare';
+import { soundFX } from './utils/audioFeedback';
 
-const STORAGE_KEY = 'ai_voice_transformation_state_v1';
+const PROGRESS_STORAGE_KEY = 'englishcare_user_progress_v2';
 
-const INITIAL_STATE: VoiceState = {
-  userName: 'Sohan Mridha',
-  language: 'bn',
-  currentDay: 1,
-  streak: 1,
-  xp: 120,
-  treeLevel: 1,
-  treeHealth: 100,
-  unlockedBadgeIds: ['badge_day_1'],
-  scheduleTimes: {
-    morning: '08:00',
-    afternoon: '13:00',
-    evening: '17:00',
-    night: '21:00',
-    sleepTime: '22:30',
-    wakeTime: '06:30'
-  },
-  sleepTracker: {
-    bedTime: '22:30',
-    wakeTime: '06:30',
-    durationHours: 8.0,
-    consistencyScore: 90,
-    voiceRecoveryScore: 92
-  },
-  todayLogs: {},
-  dayLogsByDay: {},
-  completedExercisesToday: [],
-  voiceRecordings: [],
-  difficultyFeedback: {},
-  skyTheme: 'auto',
-  audioGuidance: true,
-  notificationsEnabled: true,
-  safetyAgreementAccepted: true,
-  aiCoachMessages: []
+const DEFAULT_PROGRESS: UserProgressState = {
+  studentName: 'Sohan Mridha',
+  targetGoal: 'aplus_target',
+  dailyStreak: 3,
+  lastActiveDate: new Date().toISOString().split('T')[0],
+  totalXp: 350,
+  level: 2,
+  todayStudyMinutes: 35,
+  dailyTargetMinutes: 90,
+  syllabusCoveragePercent: 42,
+  completedRules: ['rfv_rule_1', 'rfv_rule_2', 'wh_rule_1', 'sc_rule_1'],
+  masteredVocab: ['syn_01', 'syn_02', 'ant_01'],
+  learningVocab: ['syn_03'],
+  completedQuizzes: {},
+  modelTestResults: [],
+  unlockedBadges: ['badge_first_step']
 };
 
-export default function App() {
-  // Load persisted voice state
-  const [voiceState, setVoiceState] = useState<VoiceState>(() => {
+export function App() {
+  const [currentTab, setCurrentTab] = useState<MainTab>('dashboard');
+  const [isBadgesOpen, setIsBadgesOpen] = useState<boolean>(false);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+
+  // User Progress state with localStorage hydration
+  const [progress, setProgress] = useState<UserProgressState>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(PROGRESS_STORAGE_KEY);
       if (saved) {
-        return { ...INITIAL_STATE, ...JSON.parse(saved) };
+        return { ...DEFAULT_PROGRESS, ...JSON.parse(saved) };
       }
-    } catch (e) {
-      console.warn('Failed to parse local state:', e);
-    }
-    return INITIAL_STATE;
+    } catch {}
+    return DEFAULT_PROGRESS;
   });
 
-  const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [activeSession, setActiveSession] = useState<SessionPlan | null>(null);
-  const [isSleepModalOpen, setIsSleepModalOpen] = useState(false);
-  const [isBodyModalOpen, setIsBodyModalOpen] = useState(false);
-  const [isTreeInfoOpen, setIsTreeInfoOpen] = useState(false);
-  const [selectedReportDay, setSelectedReportDay] = useState<number | null>(null);
-  const [isScientificReadingOpen, setIsScientificReadingOpen] = useState(false);
-
-  // Sync state changes to LocalStorage
+  // Sync progress to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(voiceState));
-    } catch (e) {
-      console.error('LocalStorage write error:', e);
+      localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+    } catch {}
+  }, [progress]);
+
+  // Live Study Timer (increments minutes)
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setProgress(prev => {
+          const newTodayMins = prev.todayStudyMinutes + 1;
+          return {
+            ...prev,
+            todayStudyMinutes: newTodayMins
+          };
+        });
+      }, 60000); // every minute
     }
-  }, [voiceState]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning]);
 
-  // Current Day Curriculum
-  const curriculum = getCurriculumForDay(voiceState.currentDay);
+  // Earn XP & Level Progression
+  const handleEarnXp = (amount: number, reason: string) => {
+    setProgress(prev => {
+      const newXp = prev.totalXp + amount;
+      const newLevel = Math.floor(newXp / 200) + 1;
+      const leveledUp = newLevel > prev.level;
 
-  // Partial State Updater
-  const handleUpdateState = (partial: Partial<VoiceState>) => {
-    setVoiceState((prev) => ({ ...prev, ...partial }));
+      if (leveledUp) {
+        soundFX.playLevelUp();
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+      return {
+        ...prev,
+        totalXp: newXp,
+        level: newLevel
+      };
+    });
   };
 
-  // Complete a guided session
-  const handleCompleteSession = (
-    completedExerciseIds: string[], 
-    difficultyRating: 'easy' | 'normal' | 'difficult',
-    timeBreakdown?: TaskTimeBreakdown,
-    exerciseRecords?: ExerciseRecord[]
-  ) => {
-    const todayKey = new Date().toISOString().split('T')[0];
-    const dayNum = voiceState.currentDay;
-    const currentLog = voiceState.dayLogsByDay?.[dayNum] || voiceState.todayLogs[todayKey] || {
-      date: todayKey,
-      dayNumber: dayNum,
-      completedExerciseIds: [],
-      sessionsCompleted: { morning: false, afternoon: false, evening: false, night: false },
-      breathCompleted: false,
-      voiceCompleted: false,
-      bodyCompleted: false,
-      recoveryCompleted: false,
-      dailyProgressPct: 0,
-      xpEarned: 0,
-      sleepDurationHours: voiceState.sleepTracker.durationHours,
-      sleepConsistencyScore: voiceState.sleepTracker.consistencyScore,
-      voiceRecoveryScore: voiceState.sleepTracker.voiceRecoveryScore,
-      timeBreakdown: {
-        breathSeconds: 0,
-        voiceSeconds: 0,
-        bodySeconds: 0,
-        readingSeconds: 0,
-        recoverySeconds: 0,
-        totalSeconds: 0
-      },
-      exerciseRecords: []
-    };
+  // Rule Completion
+  const handleCompleteRule = (ruleId: string) => {
+    setProgress(prev => {
+      if (prev.completedRules.includes(ruleId)) return prev;
+      const updatedRules = [...prev.completedRules, ruleId];
+      // calculate new coverage based on 23 rules total
+      const newCoverage = Math.min(100, Math.round((updatedRules.length / 23) * 50) + 20);
 
-    const sessionId = activeSession?.id;
-    const updatedSessions = {
-      ...currentLog.sessionsCompleted,
-      ...(sessionId ? { [sessionId]: true } : {})
-    };
-
-    const completedCount = Object.values(updatedSessions).filter(Boolean).length;
-    const progressPct = Math.min(100, Math.round((completedCount / 4) * 100));
-
-    // Calculate XP reward
-    const xpGain = 50;
-
-    // Check badge unlocks
-    const newUnlockedBadges = [...(voiceState.unlockedBadgeIds || [])];
-    if (voiceState.currentDay >= 3 && !newUnlockedBadges.includes('badge_day_3')) {
-      newUnlockedBadges.push('badge_day_3');
-    }
-    if (voiceState.currentDay >= 7 && !newUnlockedBadges.includes('badge_day_7')) {
-      newUnlockedBadges.push('badge_day_7');
-    }
-    if (voiceState.currentDay >= 14 && !newUnlockedBadges.includes('badge_day_14')) {
-      newUnlockedBadges.push('badge_day_14');
-    }
-    if (voiceState.currentDay >= 21 && !newUnlockedBadges.includes('badge_day_21')) {
-      newUnlockedBadges.push('badge_day_21');
-    }
-    if (voiceState.currentDay >= 30 && !newUnlockedBadges.includes('badge_day_30')) {
-      newUnlockedBadges.push('badge_day_30');
-    }
-
-    // Accumulate time breakdown
-    const existingBreakdown = currentLog.timeBreakdown || {
-      breathSeconds: 0,
-      voiceSeconds: 0,
-      bodySeconds: 0,
-      readingSeconds: 0,
-      recoverySeconds: 0,
-      totalSeconds: 0
-    };
-
-    const newBreakdown: TaskTimeBreakdown = timeBreakdown ? {
-      breathSeconds: existingBreakdown.breathSeconds + timeBreakdown.breathSeconds,
-      voiceSeconds: existingBreakdown.voiceSeconds + timeBreakdown.voiceSeconds,
-      bodySeconds: existingBreakdown.bodySeconds + timeBreakdown.bodySeconds,
-      readingSeconds: existingBreakdown.readingSeconds + timeBreakdown.readingSeconds,
-      recoverySeconds: existingBreakdown.recoverySeconds + timeBreakdown.recoverySeconds,
-      totalSeconds: existingBreakdown.totalSeconds + timeBreakdown.totalSeconds
-    } : existingBreakdown;
-
-    const mergedRecords = [
-      ...(currentLog.exerciseRecords || []),
-      ...(exerciseRecords || [])
-    ];
-
-    const updatedLog = {
-      ...currentLog,
-      completedExerciseIds: Array.from(new Set([...currentLog.completedExerciseIds, ...completedExerciseIds])),
-      sessionsCompleted: updatedSessions,
-      dailyProgressPct: progressPct,
-      xpEarned: currentLog.xpEarned + xpGain,
-      difficultyRating,
-      timeBreakdown: newBreakdown,
-      exerciseRecords: mergedRecords
-    };
-
-    setVoiceState((prev) => ({
-      ...prev,
-      xp: prev.xp + xpGain,
-      completedExercisesToday: Array.from(new Set([...prev.completedExercisesToday, ...completedExerciseIds])),
-      unlockedBadgeIds: newUnlockedBadges,
-      todayLogs: {
-        ...prev.todayLogs,
-        [todayKey]: updatedLog
-      },
-      dayLogsByDay: {
-        ...(prev.dayLogsByDay || {}),
-        [dayNum]: updatedLog
-      },
-      difficultyFeedback: {
-        ...prev.difficultyFeedback,
-        [prev.currentDay]: difficultyRating
+      // Check badges
+      const newBadges = [...prev.unlockedBadges];
+      if (updatedRules.length >= 10 && !newBadges.includes('badge_rfv_pro')) {
+        newBadges.push('badge_rfv_pro');
+        confetti({ particleCount: 100, spread: 80 });
       }
+
+      return {
+        ...prev,
+        completedRules: updatedRules,
+        syllabusCoveragePercent: newCoverage,
+        unlockedBadges: newBadges
+      };
+    });
+  };
+
+  // Master Vocab Word
+  const handleMasterWord = (wordId: string) => {
+    setProgress(prev => {
+      if (prev.masteredVocab.includes(wordId)) return prev;
+      const updatedVocab = [...prev.masteredVocab, wordId];
+      const newBadges = [...prev.unlockedBadges];
+      if (updatedVocab.length >= 20 && !newBadges.includes('badge_vocab_titan')) {
+        newBadges.push('badge_vocab_titan');
+        confetti({ particleCount: 100, spread: 80 });
+      }
+      return {
+        ...prev,
+        masteredVocab: updatedVocab,
+        unlockedBadges: newBadges
+      };
+    });
+  };
+
+  // Update Syllabus Coverage
+  const handleUpdateCoverage = (additionalPercent: number) => {
+    setProgress(prev => ({
+      ...prev,
+      syllabusCoveragePercent: Math.min(100, prev.syllabusCoveragePercent + additionalPercent)
     }));
   };
 
-  // Save Scientific Reading drill completion
-  const handleSaveReadingLog = (result: VoiceAnalysisResult, secondsSpent: number, passage: any) => {
-    const todayKey = new Date().toISOString().split('T')[0];
-    const dayNum = voiceState.currentDay;
-    const currentLog = voiceState.dayLogsByDay?.[dayNum] || voiceState.todayLogs[todayKey] || {
-      date: todayKey,
-      dayNumber: dayNum,
-      completedExerciseIds: [],
-      sessionsCompleted: { morning: false, afternoon: false, evening: false, night: false },
-      breathCompleted: false,
-      voiceCompleted: false,
-      bodyCompleted: false,
-      recoveryCompleted: false,
-      dailyProgressPct: 0,
-      xpEarned: 0,
-      sleepDurationHours: 8,
-      sleepConsistencyScore: 90,
-      voiceRecoveryScore: 90,
-      timeBreakdown: {
-        breathSeconds: 0,
-        voiceSeconds: 0,
-        bodySeconds: 0,
-        readingSeconds: 0,
-        recoverySeconds: 0,
-        totalSeconds: 0
-      },
-      exerciseRecords: []
-    };
-
-    const prevBreakdown = currentLog.timeBreakdown || {
-      breathSeconds: 0,
-      voiceSeconds: 0,
-      bodySeconds: 0,
-      readingSeconds: 0,
-      recoverySeconds: 0,
-      totalSeconds: 0
-    };
-
-    const newBreakdown: TaskTimeBreakdown = {
-      ...prevBreakdown,
-      readingSeconds: prevBreakdown.readingSeconds + secondsSpent,
-      totalSeconds: prevBreakdown.totalSeconds + secondsSpent
-    };
-
-    const readingRecord: ExerciseRecord = {
-      id: passage?.id || 'scientific_reading_drill',
-      nameBn: passage?.titleBn || 'বৈজ্ঞানিক রিডিং ও রেজোন্যান্স ড্রিল',
-      nameEn: passage?.titleEn || 'Scientific Vocal Reading Drill',
-      category: 'reading',
-      secondsSpent,
-      completedAt: new Date().toISOString()
-    };
-
-    const wordsCount = (passage?.textBn || passage?.textEn || '').trim().split(/\s+/).filter(Boolean).length || 45;
-
-    const updatedLog = {
-      ...currentLog,
-      voiceScore: Math.max(currentLog.voiceScore || 0, result.voiceScore),
-      timeBreakdown: newBreakdown,
-      exerciseRecords: [...(currentLog.exerciseRecords || []), readingRecord],
-      xpEarned: currentLog.xpEarned + 40
-    };
-
-    setVoiceState((prev) => ({
-      ...prev,
-      xp: prev.xp + 40,
-      lifetimeWordsPracticed: (prev.lifetimeWordsPracticed || 0) + wordsCount,
-      totalReadingSecondsPracticed: (prev.totalReadingSecondsPracticed || 0) + secondsSpent,
-      voiceRecordings: [result, ...prev.voiceRecordings],
-      todayLogs: {
-        ...prev.todayLogs,
-        [todayKey]: updatedLog
-      },
-      dayLogsByDay: {
-        ...(prev.dayLogsByDay || {}),
-        [dayNum]: updatedLog
+  // Record Model Test Result
+  const handleRecordTestResult = (result: {
+    testId: string;
+    testNumber: number;
+    score: number;
+    totalMarks: number;
+    date: string;
+    timeTakenSeconds: number;
+  }) => {
+    setProgress(prev => {
+      const newResults = [...prev.modelTestResults, result];
+      const newBadges = [...prev.unlockedBadges];
+      if (result.score >= 40 && !newBadges.includes('badge_100_mark_hero')) {
+        newBadges.push('badge_100_mark_hero');
+        confetti({ particleCount: 120, spread: 90 });
       }
-    }));
+      return {
+        ...prev,
+        modelTestResults: newResults,
+        unlockedBadges: newBadges
+      };
+    });
   };
 
-  // Save Voice Analysis Result
-  const handleSaveVoiceAnalysis = (result: VoiceAnalysisResult) => {
-    const todayKey = new Date().toISOString().split('T')[0];
-    const currentLog = voiceState.todayLogs[todayKey];
-
-    const newUnlocked = [...voiceState.unlockedBadgeIds];
-    if (result.voiceScore >= 85 && !newUnlocked.includes('badge_rj_star')) {
-      newUnlocked.push('badge_rj_star');
-    }
-
-    setVoiceState((prev) => ({
-      ...prev,
-      xp: prev.xp + 40,
-      unlockedBadgeIds: newUnlocked,
-      voiceRecordings: [result, ...prev.voiceRecordings],
-      todayLogs: {
-        ...prev.todayLogs,
-        [todayKey]: {
-          ...(currentLog || {
-            date: todayKey,
-            dayNumber: prev.currentDay,
-            completedExerciseIds: [],
-            sessionsCompleted: { morning: false, afternoon: false, evening: false, night: false },
-            breathCompleted: false,
-            voiceCompleted: false,
-            bodyCompleted: false,
-            recoveryCompleted: false,
-            dailyProgressPct: 25,
-            xpEarned: 0,
-            sleepDurationHours: 8,
-            sleepConsistencyScore: 90,
-            voiceRecoveryScore: 90
-          }),
-          voiceScore: result.voiceScore
-        }
-      }
-    }));
+  // Toggle Target Goal
+  const handleToggleGoal = () => {
+    setProgress(prev => {
+      const nextGoal: TargetGoal = prev.targetGoal === 'pass_target' ? 'aplus_target' : 'pass_target';
+      soundFX.playCardSwipe();
+      return {
+        ...prev,
+        targetGoal: nextGoal
+      };
+    });
   };
 
-  // Save Sleep Tracker Data
-  const handleSaveSleep = (bedTime: string, wakeTime: string, duration: number, recoveryScore: number) => {
-    const todayKey = new Date().toISOString().split('T')[0];
-    const currentLog = voiceState.todayLogs[todayKey];
+  // Toggle Timer
+  const handleToggleTimer = () => {
+    setIsTimerRunning(prev => !prev);
+    soundFX.playCardSwipe();
+  };
 
-    setVoiceState((prev) => ({
+  // Add Study Minutes
+  const handleAddStudyMinutes = (mins: number) => {
+    setProgress(prev => ({
       ...prev,
-      sleepTracker: {
-        bedTime,
-        wakeTime,
-        durationHours: duration,
-        consistencyScore: 92,
-        voiceRecoveryScore: recoveryScore
-      },
-      todayLogs: {
-        ...prev.todayLogs,
-        [todayKey]: {
-          ...(currentLog || {
-            date: todayKey,
-            dayNumber: prev.currentDay,
-            completedExerciseIds: [],
-            sessionsCompleted: { morning: false, afternoon: false, evening: false, night: false },
-            breathCompleted: false,
-            voiceCompleted: false,
-            bodyCompleted: false,
-            recoveryCompleted: false,
-            dailyProgressPct: 0,
-            xpEarned: 0,
-            sleepDurationHours: duration,
-            sleepConsistencyScore: 92,
-            voiceRecoveryScore: recoveryScore
-          }),
-          sleepDurationHours: duration,
-          voiceRecoveryScore: recoveryScore
-        }
-      }
+      todayStudyMinutes: prev.todayStudyMinutes + mins
     }));
+    soundFX.playSuccess();
   };
 
   return (
-    <SkyEnvironment themeMode={voiceState.skyTheme}>
-      <main className="min-h-screen max-w-md md:max-w-lg lg:max-w-xl mx-auto px-4 pt-4 pb-28">
-        {/* TAB VIEWS */}
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col antialiased selection:bg-amber-400 selection:text-slate-950 font-sans">
+      {/* Top Main Navigation */}
+      <Navbar
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        progress={progress}
+        isTimerRunning={isTimerRunning}
+        onToggleTimer={handleToggleTimer}
+        onToggleGoal={handleToggleGoal}
+        onOpenBadges={() => setIsBadgesOpen(true)}
+      />
+
+      {/* Main Viewport */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6">
         <AnimatePresence mode="wait">
-          {activeTab === 'home' && (
+          {currentTab === 'dashboard' && (
             <motion.div
-              key="home"
+              key="view-dashboard"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
-              <HomeDashboard
-                voiceState={voiceState}
-                curriculum={curriculum}
-                language={voiceState.language}
-                onOpenSession={(session) => setActiveSession(session)}
-                onOpenSleepTracker={() => setIsSleepModalOpen(true)}
-                onOpenBodyWellness={() => setIsBodyModalOpen(true)}
-                onOpenVoiceStudio={() => setActiveTab('studio')}
-                onOpenTreeInfo={() => setIsTreeInfoOpen(true)}
-                onOpenDailyReport={(day) => setSelectedReportDay(day)}
-                onOpenScientificReading={() => setIsScientificReadingOpen(true)}
+              <DashboardView
+                progress={progress}
+                onNavigateTab={(tab) => {
+                  setCurrentTab(tab);
+                  soundFX.playCardSwipe();
+                }}
+                onOpenBadges={() => setIsBadgesOpen(true)}
+                onAddStudyMinutes={handleAddStudyMinutes}
               />
             </motion.div>
           )}
 
-          {activeTab === 'training' && (
+          {currentTab === 'grammar' && (
             <motion.div
-              key="training"
+              key="view-grammar"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
-              <TrainingView
-                currentDay={voiceState.currentDay}
-                voiceState={voiceState}
-                language={voiceState.language}
-                onSelectDay={(day) => handleUpdateState({ currentDay: day })}
-                onOpenSession={(session) => setActiveSession(session)}
-                onOpenDailyReport={(day) => setSelectedReportDay(day)}
-                onOpenScientificReading={() => setIsScientificReadingOpen(true)}
+              <GrammarMasterView
+                onEarnXp={handleEarnXp}
+                completedRules={progress.completedRules}
+                onCompleteRule={handleCompleteRule}
               />
             </motion.div>
           )}
 
-          {activeTab === 'studio' && (
+          {currentTab === 'vocabulary' && (
             <motion.div
-              key="studio"
+              key="view-vocabulary"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
-              <VoiceStudio
-                currentDay={voiceState.currentDay}
-                language={voiceState.language}
-                savedRecordings={voiceState.voiceRecordings}
-                onSaveAnalysis={handleSaveVoiceAnalysis}
+              <VocabularyArenaView
+                onEarnXp={handleEarnXp}
+                masteredVocab={progress.masteredVocab}
+                onMasterWord={handleMasterWord}
               />
             </motion.div>
           )}
 
-          {activeTab === 'progress' && (
+          {currentTab === 'writing' && (
             <motion.div
-              key="progress"
+              key="view-writing"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
-              <ProgressDashboard
-                voiceState={voiceState}
-                language={voiceState.language}
-                onOpenDailyReport={(day) => setSelectedReportDay(day)}
-                onOpenScientificReading={() => setIsScientificReadingOpen(true)}
+              <WritingHubView
+                onEarnXp={handleEarnXp}
+                onUpdateCoverage={handleUpdateCoverage}
               />
             </motion.div>
           )}
 
-          {activeTab === 'profile' && (
+          {currentTab === 'unseen' && (
             <motion.div
-              key="profile"
+              key="view-unseen"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
-              <ProfileSettings
-                voiceState={voiceState}
-                onUpdateState={handleUpdateState}
+              <UnseenPassageView
+                onEarnXp={handleEarnXp}
+                onUpdateCoverage={handleUpdateCoverage}
+              />
+            </motion.div>
+          )}
+
+          {currentTab === 'mocktest' && (
+            <motion.div
+              key="view-mocktest"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+            >
+              <MockTestView
+                onEarnXp={handleEarnXp}
+                onRecordTestResult={handleRecordTestResult}
+              />
+            </motion.div>
+          )}
+
+          {currentTab === 'copilot' && (
+            <motion.div
+              key="view-copilot"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+            >
+              <CopilotView
+                progress={progress}
+                onEarnXp={handleEarnXp}
               />
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* MODAL 1: Interactive Guided Session Player */}
-        <AnimatePresence>
-          {activeSession && (
-            <GuidedExerciseModal
-              session={activeSession}
-              language={voiceState.language}
-              onClose={() => setActiveSession(null)}
-              onCompleteSession={handleCompleteSession}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* MODAL 2: Sleep Tracker & Vocal Rest */}
-        <AnimatePresence>
-          {isSleepModalOpen && (
-            <SleepTrackerModal
-              language={voiceState.language}
-              bedTime={voiceState.sleepTracker?.bedTime || '22:30'}
-              wakeTime={voiceState.sleepTracker?.wakeTime || '06:30'}
-              onSave={handleSaveSleep}
-              onClose={() => setIsSleepModalOpen(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* MODAL 3: Body & Posture Wellness */}
-        <AnimatePresence>
-          {isBodyModalOpen && (
-            <BodyWellnessModal
-              language={voiceState.language}
-              onClose={() => setIsBodyModalOpen(false)}
-              onComplete={() => handleUpdateState({ xp: voiceState.xp + 30 })}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* MODAL 4: Tree Info & Stages Guide */}
-        <AnimatePresence>
-          {isTreeInfoOpen && (
-            <TreeInfoModal
-              currentDay={voiceState.currentDay}
-              treeLevel={curriculum.treeStage}
-              language={voiceState.language}
-              onClose={() => setIsTreeInfoOpen(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* MODAL 5: Scientific Reading Lab & Daily Drills */}
-        <AnimatePresence>
-          {isScientificReadingOpen && (
-            <ScientificReadingModal
-              language={voiceState.language}
-              currentDay={voiceState.currentDay}
-              todayReadingSeconds={
-                (voiceState.dayLogsByDay?.[voiceState.currentDay] ||
-                  voiceState.todayLogs[new Date().toISOString().split('T')[0]])?.timeBreakdown?.readingSeconds || 0
-              }
-              lifetimeWordsPracticed={voiceState.lifetimeWordsPracticed || 0}
-              totalReadingSecondsPracticed={voiceState.totalReadingSecondsPracticed || 0}
-              onClose={() => setIsScientificReadingOpen(false)}
-              onSaveReadingLog={handleSaveReadingLog}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* MODAL 6: Granular Daily Practice & Voice Growth Report */}
-        <AnimatePresence>
-          {selectedReportDay !== null && (
-            <DailyReportViewerModal
-              initialDay={selectedReportDay}
-              voiceState={voiceState}
-              language={voiceState.language}
-              onClose={() => setSelectedReportDay(null)}
-              onSelectDayToTrain={(d) => {
-                setSelectedReportDay(null);
-                handleUpdateState({ currentDay: d });
-                setActiveTab('training');
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Mobile-First Bottom Navigation */}
-        <BottomNav
-          activeTab={activeTab}
-          language={voiceState.language}
-          onSelectTab={(tab) => setActiveTab(tab)}
-        />
       </main>
-    </SkyEnvironment>
+
+      {/* Badges Modal */}
+      <BadgesModal
+        isOpen={isBadgesOpen}
+        onClose={() => setIsBadgesOpen(false)}
+        progress={progress}
+      />
+
+      {/* Minimal Footer */}
+      <footer className="mt-auto py-6 border-t border-slate-200 text-center text-xs text-slate-500">
+        <p>National University Honours 2nd Year Non-Credit Compulsory English (Subject Code: 221109)</p>
+        <p className="mt-1 font-semibold text-slate-600">EnglishCare Gamified Platform • Powered by MridhaX AI (PIEA)</p>
+      </footer>
+    </div>
   );
 }
+
+export default App;

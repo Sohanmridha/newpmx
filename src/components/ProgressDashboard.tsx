@@ -18,11 +18,15 @@ import {
   Check,
   BookOpen,
   BarChart3,
-  Clock
+  Clock,
+  Lock,
+  Layers,
+  ChevronLeft
 } from 'lucide-react';
 import { VoiceState, BadgeItem, Language } from '../types/voice';
 import { VOICE_BADGES } from '../data/voiceBadges';
 import { D3VoiceScoreChart, ScoreDataPoint } from './D3VoiceScoreChart';
+import { YEAR_365_CYCLES, getYearCycleForDay } from '../data/voiceCurriculum';
 
 interface ProgressDashboardProps {
   voiceState: VoiceState;
@@ -37,8 +41,14 @@ export function ProgressDashboard({
   onOpenDailyReport,
   onOpenScientificReading 
 }: ProgressDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'badges' | 'calendar' | 'report'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'badges' | 'calendar' | 'report'>('calendar');
   const [selectedBadge, setSelectedBadge] = useState<BadgeItem | null>(null);
+
+  // Active Cycle in 365-day calendar (1 to 12)
+  const currentCycle = getYearCycleForDay(voiceState.currentDay);
+  const [selectedCycleNumber, setSelectedCycleNumber] = useState<number>(currentCycle.cycleNumber);
+
+  const activeCycleInfo = YEAR_365_CYCLES.find(c => c.cycleNumber === selectedCycleNumber) || currentCycle;
 
   // Generate 30-day comprehensive D3 trajectory data
   const d3ScoreData: ScoreDataPoint[] = Array.from({ length: 30 }, (_, i) => {
@@ -96,7 +106,7 @@ export function ProgressDashboard({
           { id: 'overview', labelBn: 'গ্রাফ ও পরিসংখ্যান', labelEn: 'Overview' },
           { id: 'badges', labelBn: 'ব্যাজ ও ট্রফি', labelEn: 'Badges' },
           { id: 'calendar', labelBn: '৩০ দিনের ক্যালেন্ডার', labelEn: 'Calendar' },
-          { id: 'report', labelBn: '৭ ও ৩০ দিনের রিপোর্ট', labelEn: 'Reports' }
+          { id: 'report', labelBn: 'মাইলস্টোন ও রিপোর্ট', labelEn: 'Reports' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -241,29 +251,105 @@ export function ProgressDashboard({
         </div>
       )}
 
-      {/* TAB 3: 30-DAY CALENDAR MATRIX (Interactive Day-by-Day Trigger) */}
+      {/* TAB 3: 365-DAY YEAR CALENDAR MATRIX (12 CYCLES OF 30 DAYS) */}
       {activeTab === 'calendar' && (
         <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-emerald-400" />
-                <span>{language === 'bn' ? '৩০ দিনের জার্নি ক্যালেন্ডার' : '30-Day Journey Matrix'}</span>
-              </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                {language === 'bn' ? 'যেকোনো দিনে ট্যাপ করে বিস্তারিত সময় ও পারফরম্যান্স রিপোর্ট দেখুন' : 'Tap any day to inspect specific logs and performance metrics'}
+                <h3 className="text-sm font-bold text-white">
+                  {language === 'bn' ? '৩৬৫ দিনের ভয়েস রূপান্তর জার্নি' : '365-Day Voice Transformation Journey'}
+                </h3>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {language === 'bn' ? '১২টি সাইকেল' : '12 Cycles'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {language === 'bn' 
+                  ? `দিন #${voiceState.currentDay} চলমান • মোট ${Math.max(0, voiceState.currentDay - 1)}/৩৬৫ দিন সম্পন্ন (সাইকেল ${currentCycle.cycleNumber})` 
+                  : `Day #${voiceState.currentDay} In Progress • Total ${Math.max(0, voiceState.currentDay - 1)}/365 Days Done (Cycle ${currentCycle.cycleNumber})`}
               </p>
             </div>
-            <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/30">
-              {voiceState.currentDay} / 30 Days
-            </span>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+                {language === 'bn' ? `দিন ${voiceState.currentDay} / ৩৬৫` : `Day ${voiceState.currentDay} / 365`}
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-6 gap-2">
-            {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
+          {/* 12-Cycle Selector Tabs */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium px-1">
+              <span>{language === 'bn' ? 'সাইকেল নির্বাচন করুন (প্রতি সাইকেলে ৩০ দিন):' : 'Select 30-Day Cycle (12 Total):'}</span>
+              <span className="text-emerald-400 font-mono text-[10px]">
+                {language === 'bn' ? `বর্তমান সাইকেল #${currentCycle.cycleNumber}` : `Current: Cycle #${currentCycle.cycleNumber}`}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+              {YEAR_365_CYCLES.map((cycle) => {
+                const isCurrentActiveCycle = currentCycle.cycleNumber === cycle.cycleNumber;
+                const isSelected = selectedCycleNumber === cycle.cycleNumber;
+                const isCompletedCycle = voiceState.currentDay > cycle.endDay;
+                const isFutureCycle = voiceState.currentDay < cycle.startDay;
+
+                return (
+                  <button
+                    key={cycle.cycleNumber}
+                    onClick={() => setSelectedCycleNumber(cycle.cycleNumber)}
+                    className={`px-2 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 border ${
+                      isSelected
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md font-extrabold scale-[1.02]'
+                        : isCurrentActiveCycle
+                        ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300 ring-1 ring-emerald-500/40'
+                        : isCompletedCycle
+                        ? 'bg-slate-900 border-slate-800 text-emerald-400/90'
+                        : 'bg-slate-950/60 border-slate-800/60 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>C{cycle.cycleNumber}</span>
+                      {isCompletedCycle && !isSelected && <Check className="w-2.5 h-2.5 text-emerald-400" />}
+                      {isCurrentActiveCycle && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />}
+                    </div>
+                    <span className={`text-[9px] font-mono ${isSelected ? 'text-slate-900' : 'text-slate-400'}`}>
+                      {cycle.startDay}-{cycle.endDay}d
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active Cycle Focus Card */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-emerald-300">
+                {language === 'bn' ? activeCycleInfo.titleBn : activeCycleInfo.titleEn}
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
+                {language === 'bn' ? `দিন ${activeCycleInfo.startDay} - ${activeCycleInfo.endDay}` : `Days ${activeCycleInfo.startDay} - ${activeCycleInfo.endDay}`}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              {language === 'bn' ? activeCycleInfo.focusBn : activeCycleInfo.focusEn}
+            </p>
+          </div>
+
+          {/* 30-Day Grid Matrix for Selected Cycle */}
+          <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
+            {Array.from(
+              { length: activeCycleInfo.endDay - activeCycleInfo.startDay + 1 },
+              (_, i) => activeCycleInfo.startDay + i
+            ).map((d) => {
               const isPast = d < voiceState.currentDay;
               const isCurrent = d === voiceState.currentDay;
               const isFuture = d > voiceState.currentDay;
+              const dayLog = voiceState.dayLogsByDay?.[d];
+              const isLoggedCompleted = (dayLog?.dailyProgressPct || 0) >= 100;
 
               return (
                 <button
@@ -273,38 +359,47 @@ export function ProgressDashboard({
                       onOpenDailyReport(d);
                     }
                   }}
-                  className={`h-15 rounded-2xl border flex flex-col items-center justify-center font-mono transition-all hover:scale-105 active:scale-95 cursor-pointer relative group ${
+                  className={`h-16 rounded-2xl border flex flex-col items-center justify-center font-mono transition-all hover:scale-105 active:scale-95 cursor-pointer relative group ${
                     isCurrent
                       ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-lg scale-105 ring-2 ring-emerald-500/40'
-                      : isPast
+                      : isPast || isLoggedCompleted
                       ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-400 hover:border-emerald-400 hover:bg-emerald-900/40'
                       : 'bg-slate-950 border-slate-800/80 text-slate-500 hover:border-slate-600 hover:text-slate-300'
                   }`}
-                  title={language === 'bn' ? `দিন #${d} এর রিপোর্ট দেখুন` : `View Day #${d} Report`}
+                  title={
+                    isFuture
+                      ? (language === 'bn' ? `দিন #${d} (লক করা - দিন #${voiceState.currentDay} শেষ করুন)` : `Day #${d} (Locked - Complete Day #${voiceState.currentDay} first)`)
+                      : (language === 'bn' ? `দিন #${d} এর রিপোর্ট দেখুন` : `View Day #${d} Report`)
+                  }
                 >
                   <span className="text-[9px] font-sans font-bold uppercase text-slate-400">Day</span>
                   <span className="text-sm font-extrabold">{d}</span>
-                  {isPast && <Check className="w-3 h-3 text-emerald-400 mt-0.5" />}
+                  {(isPast || isLoggedCompleted) && <Check className="w-3 h-3 text-emerald-400 mt-0.5" />}
                   {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping mt-0.5" />}
-                  {isFuture && <span className="text-[9px] text-slate-600 font-sans">•</span>}
+                  {isFuture && <Lock className="w-2.5 h-2.5 text-slate-600 mt-0.5" />}
                 </button>
               );
             })}
           </div>
 
+          {/* Legend */}
           <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs text-slate-300">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-[11px] text-slate-400">{language === 'bn' ? 'সম্পন্ন' : 'Completed'}</span>
+                <span className="text-[11px] text-slate-400">{language === 'bn' ? 'সম্পন্ন দিন' : 'Completed'}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-500/50" />
-                <span className="text-[11px] text-slate-300 font-bold">{language === 'bn' ? 'চলমান' : 'Current'}</span>
+                <span className="text-[11px] text-slate-300 font-bold">{language === 'bn' ? 'চলমান দিন' : 'Current'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Lock className="w-3 h-3 text-slate-500" />
+                <span className="text-[11px] text-slate-500">{language === 'bn' ? 'লক করা দিন' : 'Locked'}</span>
               </div>
             </div>
-            <span className="text-[10px] text-emerald-400 font-medium">
-              {language === 'bn' ? 'ক্লিক করলেই দৈনিক রিপোর্ট খুলবে' : 'Click any day to open report'}
+            <span className="text-[10px] text-emerald-400 font-medium hidden sm:inline">
+              {language === 'bn' ? 'ক্লিক করলেই দৈনিক রিপোর্ট বা প্রিভিউ খুলবে' : 'Click any day to open report'}
             </span>
           </div>
         </div>
@@ -362,43 +457,88 @@ export function ProgressDashboard({
               </button>
             </div>
           )}
-          {/* 7-Day Weekly Report Card */}
-          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div>
-                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
-                  {language === 'bn' ? 'সাপ্তাহিক মূল্যায়ন (Week 1)' : 'Week 1 Report'}
-                </span>
-                <h3 className="text-base font-extrabold text-white">
-                  {language === 'bn' ? '৭ ডে ভয়েস বিল্ডার রিপোর্ট' : '7-Day Voice Builder Milestone'}
-                </h3>
+          {/* 7-Day Weekly Report Card (Unlocked on Day 7+) */}
+          {voiceState.currentDay >= 7 ? (
+            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                    {language === 'bn' ? 'সাপ্তাহিক মূল্যায়ন (Week 1 সম্পন্ন)' : 'Week 1 Report Complete'}
+                  </span>
+                  <h3 className="text-base font-extrabold text-white">
+                    {language === 'bn' ? '৭ ডে ভয়েস বিল্ডার রিপোর্ট' : '7-Day Voice Builder Milestone'}
+                  </h3>
+                </div>
+                <div className="p-2.5 rounded-2xl bg-emerald-500/15 text-emerald-400">
+                  <FileText className="w-5 h-5" />
+                </div>
               </div>
-              <div className="p-2.5 rounded-2xl bg-emerald-500/15 text-emerald-400">
-                <FileText className="w-5 h-5" />
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {language === 'bn'
+                  ? 'প্রথম সপ্তাহের অনুশীলনে আপনার ডায়াফ্রাম্যাটিক শ্বাস নিয়ন্ত্রণ উন্নত হয়েছে। স্বরতন্ত্রীর অপ্রয়োজনীয় চাপ হ্রাস পেয়েছে এবং মাস্ক রেজোন্যান্স বৃদ্ধি পেয়েছে।'
+                  : 'Week 1 foundational training successfully lowered throat constriction, enhanced lower breath support, and introduced crisp resonance projection.'}
+              </p>
+
+              <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
+                <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block font-sans">Clarity</span>
+                  <span className="text-sm font-bold text-emerald-400">+35%</span>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block font-sans">Consistency</span>
+                  <span className="text-sm font-bold text-cyan-400">100%</span>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block font-sans">Sleep Rest</span>
+                  <span className="text-sm font-bold text-amber-400">8.0 hrs</span>
+                </div>
               </div>
             </div>
+          ) : (
+            <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                <div>
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5" />
+                    {language === 'bn' ? 'সাপ্তাহিক মূল্যায়ন (Week 1 মাইলস্টোন — ৭ম দিনে উন্মোচিত হবে)' : 'Week 1 Report (Unlocks on Day 7)'}
+                  </span>
+                  <h3 className="text-base font-extrabold text-white">
+                    {language === 'bn' ? '৭ ডে ভয়েস বিল্ডার রিপোর্ট' : '7-Day Voice Builder Milestone'}
+                  </h3>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-800 text-slate-400 font-mono text-xs font-bold">
+                  {Math.max(0, voiceState.currentDay - 1)} / 7 {language === 'bn' ? 'দিন' : 'Days'}
+                </div>
+              </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {language === 'bn'
-                ? 'প্রথম সপ্তাহের অনুশীলনে আপনার ডায়াফ্রাম্যাটিক শ্বাস নিয়ন্ত্রণ উন্নত হয়েছে। স্বরতন্ত্রীর অপ্রয়োজনীয় চাপ হ্রাস পেয়েছে এবং মাস্ক রেজোন্যান্স বৃদ্ধি পেয়েছে।'
-                : 'Week 1 foundational training successfully lowered throat constriction, enhanced lower breath support, and introduced crisp resonance projection.'}
-            </p>
+              {/* Progress towards 7 days */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">
+                    {language === 'bn' 
+                      ? `দিন ১ সম্পন্ন • দিন ${voiceState.currentDay} চলমান` 
+                      : `Day 1 complete • Day ${voiceState.currentDay} in progress`}
+                  </span>
+                  <span className="font-mono font-bold text-emerald-400">
+                    {Math.round((Math.max(0, voiceState.currentDay - 1) / 7) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.max(10, ((voiceState.currentDay - 1) / 7) * 100)}%` }}
+                  />
+                </div>
+              </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
-              <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-sans">Clarity</span>
-                <span className="text-sm font-bold text-emerald-400">+35%</span>
-              </div>
-              <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-sans">Consistency</span>
-                <span className="text-sm font-bold text-cyan-400">100%</span>
-              </div>
-              <div className="p-2 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-sans">Sleep Rest</span>
-                <span className="text-sm font-bold text-amber-400">8.0 hrs</span>
-              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {language === 'bn'
+                  ? `আপনি বর্তমানে ২য় দিনে আছেন। ১ম দিন সফলভাবে সম্পন্ন হয়েছে। ৭ম দিন পর্যন্ত নিয়মিত অনুশীলন সম্পন্ন করলে ১ম সপ্তাহের পূর্ণাঙ্গ ভয়েস অ্যানালাইসিস এবং তরুণ বৃক্ষ (Young Tree) ব্যাজ উন্মুক্ত হবে।`
+                  : `You are currently on Day ${voiceState.currentDay}. Complete all 7 days to unlock the comprehensive weekly voice analysis report and Week 1 milestones.`}
+              </p>
             </div>
-          </div>
+          )}
 
           {/* 30-Day Master Graduation Certificate Showcase */}
           <div className="p-6 rounded-3xl bg-gradient-to-b from-amber-950/30 via-slate-900 to-slate-950 border border-amber-500/40 shadow-2xl text-center space-y-4">
@@ -412,18 +552,18 @@ export function ProgressDashboard({
               </h3>
               <p className="text-xs text-slate-300 mt-1 max-w-sm mx-auto leading-relaxed">
                 {language === 'bn'
-                  ? '৩০ দিন পূর্ণ সম্পন্ন করার পর আপনার আজীবন স্থায়ী স্পষ্ট ও সাবলীল কণ্ঠের অফিসিয়াল রূপান্তর সার্টিফিকেট উন্মোচিত হবে।'
-                  : 'Upon completing all 30 days, your verified Voice Transformation certificate and full-growth Master Tree badge will unlock.'}
+                  ? `৩০ দিন পূর্ণ সম্পন্ন করার পর আপনার আজীবন স্থায়ী স্পষ্ট ও সাবলীল কণ্ঠের অফিসিয়াল রূপান্তর সার্টিফিকেট উন্মোচিত হবে। (অগ্রগতি: ${Math.max(0, voiceState.currentDay - 1)} / ৩০ দিন সম্পন্ন)`
+                  : `Upon completing all 30 days, your verified Voice Transformation certificate and full-growth Master Tree badge will unlock. (Progress: ${Math.max(0, voiceState.currentDay - 1)} / 30 days complete)`}
               </p>
             </div>
 
             <div className="pt-2">
               <button
-                onClick={() => alert(language === 'bn' ? 'আপনার ৩০ দিনের অগ্রগতি রেকর্ড সফলভাবে এক্সপোর্ট হয়েছে!' : 'Voice training journey exported!')}
-                className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition-transform active:scale-95 flex items-center gap-2 mx-auto"
+                onClick={() => alert(language === 'bn' ? 'আপনার বর্তমান অগ্রগতি রেকর্ড সফলভাবে এক্সপোর্ট হয়েছে!' : 'Current voice training progress exported!')}
+                className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg transition-transform active:scale-95 flex items-center gap-2 mx-auto cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>{language === 'bn' ? 'প্রোগ্রেস সামারি ডাউনলোড করুন' : 'Export Progress Summary'}</span>
+                <span>{language === 'bn' ? 'বর্তমান প্রোগ্রেস সামারি ডাউনলোড করুন' : 'Export Current Progress Summary'}</span>
               </button>
             </div>
           </div>

@@ -68,11 +68,11 @@ export function HomeDashboard({
   };
 
   const timeBreakdown = todayLog?.timeBreakdown || {
-    breathSeconds: (todayLog?.breathCompleted ? 8 * 60 : 0) + (todayLog?.sessionsCompleted?.morning ? 240 : 0),
-    voiceSeconds: (todayLog?.voiceCompleted ? 14 * 60 : 0) + (todayLog?.sessionsCompleted?.evening ? 420 : 0),
-    bodySeconds: (todayLog?.bodyCompleted ? 6 * 60 : 0) + 120,
-    readingSeconds: (todayLog?.sessionsCompleted?.afternoon ? 10 * 60 : 0) + (todayLog?.sessionsCompleted?.evening ? 300 : 0),
-    recoverySeconds: (todayLog?.recoveryCompleted ? 8 * 60 : 0) + (todayLog?.sessionsCompleted?.night ? 240 : 0),
+    breathSeconds: 0,
+    voiceSeconds: 0,
+    bodySeconds: 0,
+    readingSeconds: 0,
+    recoverySeconds: 0,
     totalSeconds: 0
   };
 

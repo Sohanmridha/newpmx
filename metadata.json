@@ -1,6 +1,6 @@
 {
-  "name": "AI Voice Transformation",
-  "description": "30-Day Cinematic AI Voice Training, Breath & Resonance Coaching, RJ-Style Delivery, Dynamic Tree Growth, and Progress Tracking App.",
+  "name": "EnglishCare Honours 2nd Year (Gamified & Visual Learning)",
+  "description": "National University Honours 2nd Year Non-Credit Compulsory English Complete Gamified Learning Platform: Grammar Master, Vocabulary Arena, Writing Hub, Unseen Passages, 100-Mark Mock Tests & MridhaX AI Study Co-pilot.",
   "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
